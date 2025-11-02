@@ -108,18 +108,18 @@ local tabsPanel = new("Frame", {
 local tabsLayout = new("UIListLayout", {Padding = UDim.new(0,8), SortOrder = Enum.SortOrder.LayoutOrder}, tabsPanel)
 new("UIPadding", {PaddingLeft = UDim.new(0,12), PaddingTop = UDim.new(0,8)}, tabsPanel)
 
--- Buttons panel (right scrollable)
+-- Buttons panel (right scrollable) - shifted slightly left for cleaner look
 local buttonsPanel = new("ScrollingFrame", {
     Parent = main,
     Name = "ButtonsPanel",
-    Size = UDim2.new(1,-176,1,-118),
+    Size = UDim2.new(1,-180,1,-118),
     Position = UDim2.new(0,176,0,90),
     BackgroundTransparency = 1,
     CanvasSize = UDim2.new(0,0,0,0),
     ScrollBarThickness = 8,
 }, main)
 local buttonsLayout = new("UIListLayout", {Padding = UDim.new(0,8), SortOrder = Enum.SortOrder.LayoutOrder}, buttonsPanel)
-new("UIPadding", {PaddingLeft = UDim.new(0,8), PaddingRight = UDim.new(0,8), PaddingTop = UDim.new(0,8)}, buttonsPanel)
+new("UIPadding", {PaddingLeft = UDim.new(0,4), PaddingRight = UDim.new(0,8), PaddingTop = UDim.new(0,8)}, buttonsPanel)
 
 local function updateCanvas()
     RunService.Heartbeat:Wait()
@@ -202,15 +202,15 @@ toggleBtn.MouseButton1Click:Connect(function()
         minimized = false
         toggleBtn.Text = "Minimize"
         errFrame.Visible = true
-        tabsPanel.Visible = true
         buttonsPanel.Visible = true
+        divider.Visible = true
         TweenService:Create(main, TweenInfo.new(0.16, Enum.EasingStyle.Quad), {Size = origSize}):Play()
     else
         minimized = true
         toggleBtn.Text = "Maximize"
         errFrame.Visible = false
-        tabsPanel.Visible = false
         buttonsPanel.Visible = false
+        divider.Visible = false
         TweenService:Create(main, TweenInfo.new(0.16, Enum.EasingStyle.Quad), {Size = UDim2.new(origSize.X.Scale, origSize.X.Offset, 0, 48)}):Play()
     end
 end)
@@ -299,53 +299,6 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- Teams helper
-local teamColorMap = {
-    ["Neutral"] = BrickColor.new("Medium stone grey"),
-    ["Inmates"] = BrickColor.new("Bright orange"),
-    ["Guards"] = BrickColor.new("Bright blue"),
-    ["Criminals"] = BrickColor.new("Really red"),
-}
-
-local function getOrCreateTeam(name)
-    for _,c in ipairs(TeamsService:GetChildren()) do
-        if c:IsA("Team") and c.Name:lower() == name:lower() then
-            return c
-        end
-    end
-    local ok, t = pcall(function()
-        local nt = Instance.new("Team")
-        nt.Name = name
-        nt.TeamColor = teamColorMap[name] or BrickColor.new("Medium stone grey")
-        nt.Parent = TeamsService
-        return nt
-    end)
-    if ok then return t end
-    return nil
-end
-
-local function switchTeam(name)
-    local t = getOrCreateTeam(name)
-    if not t then setError("Team error: "..tostring(name)); return end
-    player.Team = t
-    pcall(function() player.TeamColor = t.TeamColor end)
-    
-    -- Fire remote for team persist
-    if workspaceRemote:FindFirstChild("TeamEvent") then
-        pcall(function()
-            workspaceRemote.TeamEvent:FireServer(name)
-        end)
-    end
-    
-    local char = player.Character
-    if char then
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if hum and hum.Health > 0 then hum.Health = 0; setError("Switched to "..name.." & reset") return end
-    end
-    local ok, err = pcall(function() player:LoadCharacter() end)
-    if ok then setError("Switched to "..name.." & loaded") else setError("Team load error: "..tostring(err)) end
-end
-
 -- Tab populators
 local function populatePlayerTab()
     clearButtons()
@@ -374,12 +327,46 @@ local function populatePlayerTab()
     updateCanvas()
 end
 
-local function populateTeamsTab()
+local function populateMiscTab()
     clearButtons()
-    makeButton("Inmates", buttonsPanel, function() switchTeam("Inmates") end)
-    makeButton("Criminals", buttonsPanel, function() switchTeam("Criminals") end)
-    makeButton("Guards", buttonsPanel, function() switchTeam("Guards") end)
-    makeButton("Neutral", buttonsPanel, function() switchTeam("Neutral") end)
+    makeButton("Remove Doors", buttonsPanel, function()
+        if workspace:FindFirstChild("Doors") then workspace.Doors:Destroy(); setError("Doors removed") else setError("No Doors found") end
+    end)
+    makeButton("Remove Walls", buttonsPanel, function()
+        if workspace:FindFirstChild("walls") then workspace.walls:Destroy(); setError("Walls removed") else setError("No Walls found") end
+    end)
+    makeButton("Rejoin Server", buttonsPanel, function()
+        setError("Rejoining server...")
+        local TeleportService = game:GetService("TeleportService")
+        local placeId = game.PlaceId
+        TeleportService:Teleport(placeId, player)
+    end)
+    updateCanvas()
+end
+
+local function populateCheatsTab()
+    clearButtons()
+    makeButton("ESP (Inmates, Guards, Criminals)", buttonsPanel, function()
+        setError("ESP Enabled")
+        local function espPlayer(p)
+            if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                for _,part in ipairs(p.Character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        local outline = Instance.new("SelectionBox")
+                        outline.Adornee = part
+                        outline.LineThickness = 0.05
+                        outline.SurfaceColor3 = p.TeamColor.Color
+                        outline.Color3 = p.TeamColor.Color
+                        outline.Parent = part
+                    end
+                end
+            end
+        end
+        for _,p in ipairs(Players:GetPlayers()) do
+            if p ~= player then espPlayer(p) end
+            p.CharacterAdded:Connect(function() espPlayer(p) end)
+        end
+    end)
     updateCanvas()
 end
 
@@ -437,8 +424,8 @@ local function populateGeneric()
     updateCanvas()
 end
 
--- Create tab buttons
-local tabNames = {"Player","Teams","Teleports","Weapons","Cheats","Misc","Scripts"}
+-- Create tab buttons (Removed Teams)
+local tabNames = {"Player","Teleports","Cheats","Misc","Scripts","Weapons"}
 local tabButtons = {}
 for _,name in ipairs(tabNames) do
     local tbtn = new("TextButton", {
@@ -455,8 +442,9 @@ for _,name in ipairs(tabNames) do
         for _,c in ipairs(tabsPanel:GetChildren()) do if c:IsA("TextButton") then c.BackgroundColor3 = Color3.fromRGB(55,55,55) end end
         tbtn.BackgroundColor3 = Color3.fromRGB(92,92,92)
         if name == "Player" then populatePlayerTab()
-        elseif name == "Teams" then populateTeamsTab()
+        elseif name == "Misc" then populateMiscTab()
         elseif name == "Teleports" then populateTeleportsTab()
+        elseif name == "Cheats" then populateCheatsTab()
         elseif name == "Scripts" then populateScriptsTab()
         else populateGeneric() end
     end)
