@@ -64,7 +64,7 @@ local toggleBtn = new("TextButton", {
 }, titleBar)
 new("UICorner", {CornerRadius = UDim.new(0,6)}, toggleBtn)
 
--- Error log (single-line)
+-- Logging frame (single-line)
 local errFrame = new("Frame", {
     Parent = main,
     Size = UDim2.new(1,-24,0,30),
@@ -75,7 +75,7 @@ local errFrame = new("Frame", {
 new("UICorner", {CornerRadius = UDim.new(0,6)}, errFrame)
 local errLabel = new("TextLabel", {
     Parent = errFrame,
-    Text = "Error Log: None",
+    Text = "Logging: None",
     BackgroundTransparency = 1,
     Size = UDim2.new(1,-12,1,0),
     Position = UDim2.new(0,6,0,0),
@@ -87,7 +87,7 @@ local errLabel = new("TextLabel", {
 }, errFrame)
 
 local function setError(text)
-    pcall(function() errLabel.Text = "Error Log: " .. tostring(text or "None") end)
+    pcall(function() errLabel.Text = "Logging: " .. tostring(text or "None") end)
 end
 
 -- Divider
@@ -108,7 +108,7 @@ local tabsPanel = new("Frame", {
 local tabsLayout = new("UIListLayout", {Padding = UDim.new(0,8), SortOrder = Enum.SortOrder.LayoutOrder}, tabsPanel)
 new("UIPadding", {PaddingLeft = UDim.new(0,12), PaddingTop = UDim.new(0,8)}, tabsPanel)
 
--- Buttons panel (right scrollable) - shifted slightly left for cleaner look
+-- Buttons panel (right scrollable)
 local buttonsPanel = new("ScrollingFrame", {
     Parent = main,
     Name = "ButtonsPanel",
@@ -126,7 +126,7 @@ local function updateCanvas()
     buttonsPanel.CanvasSize = UDim2.new(0,0,0, buttonsLayout.AbsoluteContentSize.Y + 12)
 end
 
--- Button factory (hover, click wrapper)
+-- Button factory
 local function makeButton(text, parent, callback)
     local btn = new("TextButton", {
         Parent = parent,
@@ -167,7 +167,7 @@ local flyBV, flyBG = nil, nil
 local moveKeys = {W=false, A=false, S=false, D=false}
 local baseFlySpeed = 60
 
--- Draggable (global)
+-- Draggable
 local dragging = false
 local dragStart, startPos
 local UIS = UserInputService
@@ -194,7 +194,7 @@ UIS.InputEnded:Connect(function(input)
     end
 end)
 
--- Minimize / Maximize behavior
+-- Minimize / Maximize
 local minimized = false
 local origSize = main.Size
 toggleBtn.MouseButton1Click:Connect(function()
@@ -204,6 +204,7 @@ toggleBtn.MouseButton1Click:Connect(function()
         errFrame.Visible = true
         buttonsPanel.Visible = true
         divider.Visible = true
+        tabsPanel.Visible = true
         TweenService:Create(main, TweenInfo.new(0.16, Enum.EasingStyle.Quad), {Size = origSize}):Play()
     else
         minimized = true
@@ -211,6 +212,7 @@ toggleBtn.MouseButton1Click:Connect(function()
         errFrame.Visible = false
         buttonsPanel.Visible = false
         divider.Visible = false
+        tabsPanel.Visible = false
         TweenService:Create(main, TweenInfo.new(0.16, Enum.EasingStyle.Quad), {Size = UDim2.new(origSize.X.Scale, origSize.X.Offset, 0, 48)}):Play()
     end
 end)
@@ -360,11 +362,33 @@ local function populateCheatsTab()
                         outline.Parent = part
                     end
                 end
+                -- Tracer line
+                local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+                local tracer = Instance.new("Beam")
+                local attachment0 = Instance.new("Attachment", player.Character and player.Character:FindFirstChild("HumanoidRootPart") or nil)
+                local attachment1 = Instance.new("Attachment", hrp)
+                tracer.Attachment0 = attachment0
+                tracer.Attachment1 = attachment1
+                tracer.FaceCamera = true
+                tracer.Color = ColorSequence.new(p.TeamColor.Color)
+                tracer.Width0 = 0.05
+                tracer.Width1 = 0.05
+                tracer.Parent = workspace
             end
         end
         for _,p in ipairs(Players:GetPlayers()) do
             if p ~= player then espPlayer(p) end
             p.CharacterAdded:Connect(function() espPlayer(p) end)
+        end
+    end)
+    makeButton("Escape", buttonsPanel, function()
+        local char = player.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            char.HumanoidRootPart.CFrame = CFrame.new(-932, 94, 2051)
+            setError("Teleporting to Escape point...")
+            wait(3)
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then hum.Health = 0 end
         end
     end)
     updateCanvas()
@@ -424,7 +448,7 @@ local function populateGeneric()
     updateCanvas()
 end
 
--- Create tab buttons (Removed Teams)
+-- Create tab buttons
 local tabNames = {"Player","Teleports","Cheats","Misc","Scripts","Weapons"}
 local tabButtons = {}
 for _,name in ipairs(tabNames) do
