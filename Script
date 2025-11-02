@@ -1,13 +1,4 @@
---== Prison Life - BMF UI (Final: draggable, minimize, WASD fly, teams) ==--
--- Features:
--- • Fully draggable UI (global InputChanged)
--- • Minimize / Maximize icon on title bar
--- • Fly uses WASD (camera-relative) movement
--- • Teams tab: Inmates, Criminals, Guards, Neutral (creates teams if missing, sets TeamColor, resets character)
--- • Player tab: Noclip, Unclip, Fly, Unfly, Infinite Jump toggle, Speed = 50, Reset Character
--- • Scripts tab: Infinite Yield, Dex Explorer, Chat Bypass (pcall + error log)
--- • Toggle UI: Delete key (ContextActionService)
--- • Error logging label
+--== Prison Life - BMF UI (By Chat GPT)
 
 -- Services
 local Players = game:GetService("Players")
@@ -20,128 +11,125 @@ local TeamsService = game:GetService("Teams")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- small helper to create instances
+-- helper to create instances
 local function new(class, props, parent)
     local obj = Instance.new(class)
     if props then
         for k,v in pairs(props) do obj[k] = v end
     end
-    obj.Parent = parent
+    if parent then obj.Parent = parent end
     return obj
 end
 
--- ScreenGui
-local screenGui = new("ScreenGui", {Name = "BMF_UI_Final", ResetOnSpawn = false}, playerGui)
+-- Root
+local screenGui = new("ScreenGui", {Name = "BMF_UI_ThemeA", ResetOnSpawn = false}, playerGui)
 
 -- Main container
 local main = new("Frame", {
     Name = "Main",
-    Size = UDim2.new(0, 520, 0, 520),
-    Position = UDim2.new(0.5, -260, 0.5, -260),
-    BackgroundColor3 = Color3.fromRGB(30,30,30),
+    Size = UDim2.new(0,520,0,520),
+    Position = UDim2.new(0.5,-260,0.5,-260),
+    BackgroundColor3 = Color3.fromRGB(28,28,28),
     BorderSizePixel = 0,
 }, screenGui)
 new("UICorner", {CornerRadius = UDim.new(0,10)}, main)
-new("UIStroke", {Color = Color3.fromRGB(20,20,20), Thickness = 1, Transparency = 0.9}, main)
+new("UIStroke", {Color = Color3.fromRGB(22,22,22), Thickness = 1, Transparency = 0.9}, main)
 
 -- Title bar
-local titleBar = new("Frame", {
-    Size = UDim2.new(1,0,0,48),
-    BackgroundColor3 = Color3.fromRGB(42,42,42),
-    Parent = main,
-})
+local titleBar = new("Frame", {Parent = main, Size = UDim2.new(1,0,0,48), BackgroundColor3 = Color3.fromRGB(40,40,40)}, main)
 new("UICorner", {CornerRadius = UDim.new(0,8)}, titleBar)
-
 local titleLabel = new("TextLabel", {
+    Parent = titleBar,
     Text = "Prison Life - BMF",
+    BackgroundTransparency = 1,
     Size = UDim2.new(1,-120,1,0),
     Position = UDim2.new(0,16,0,0),
-    BackgroundTransparency = 1,
     Font = Enum.Font.GothamBold,
     TextSize = 20,
     TextColor3 = Color3.fromRGB(255,255,255),
     TextXAlignment = Enum.TextXAlignment.Left,
-    Parent = titleBar
-})
+}, titleBar)
 
--- Minimize / maximize button
+-- Minimize/Maximize
 local toggleBtn = new("TextButton", {
-    Size = UDim2.new(0, 92, 0, 30),
-    Position = UDim2.new(1, -104, 0, 9),
-    BackgroundColor3 = Color3.fromRGB(65,65,65),
+    Parent = titleBar,
+    Size = UDim2.new(0,96,0,30),
+    Position = UDim2.new(1,-110,0,9),
     Text = "Minimize",
     Font = Enum.Font.Gotham,
     TextSize = 14,
     TextColor3 = Color3.fromRGB(255,255,255),
-    Parent = titleBar,
-})
+    BackgroundColor3 = Color3.fromRGB(65,65,65),
+    BorderSizePixel = 0,
+}, titleBar)
 new("UICorner", {CornerRadius = UDim.new(0,6)}, toggleBtn)
 
--- Error area (single-line clipped)
+-- Error log (single-line)
 local errFrame = new("Frame", {
-    Size = UDim2.new(1, -24, 0, 30),
-    Position = UDim2.new(0, 12, 0, 56),
-    BackgroundColor3 = Color3.fromRGB(44,44,44),
     Parent = main,
-})
+    Size = UDim2.new(1,-24,0,30),
+    Position = UDim2.new(0,12,0,56),
+    BackgroundColor3 = Color3.fromRGB(44,44,44),
+    BorderSizePixel = 0,
+}, main)
 new("UICorner", {CornerRadius = UDim.new(0,6)}, errFrame)
 local errLabel = new("TextLabel", {
+    Parent = errFrame,
     Text = "Error Log: None",
+    BackgroundTransparency = 1,
     Size = UDim2.new(1,-12,1,0),
     Position = UDim2.new(0,6,0,0),
-    BackgroundTransparency = 1,
     Font = Enum.Font.Gotham,
     TextSize = 14,
     TextColor3 = Color3.fromRGB(255,100,100),
     TextXAlignment = Enum.TextXAlignment.Left,
     TextTruncate = Enum.TextTruncate.AtEnd,
-    Parent = errFrame,
-})
+}, errFrame)
 
 local function setError(text)
     pcall(function() errLabel.Text = "Error Log: " .. tostring(text or "None") end)
 end
 
--- divider
+-- Divider
 local divider = new("Frame", {
-    Size = UDim2.new(0,2,1, -118),
+    Parent = main,
+    Size = UDim2.new(0,2,1,-118),
     Position = UDim2.new(0,152,0,90),
     BackgroundColor3 = Color3.fromRGB(75,75,75),
-    Parent = main,
-})
+}, main)
 
--- tabs panel (left)
+-- Tabs panel (left)
 local tabsPanel = new("Frame", {
+    Parent = main,
     Size = UDim2.new(0,152,1,-118),
     Position = UDim2.new(0,0,0,90),
     BackgroundTransparency = 1,
-    Parent = main,
-})
+}, main)
 local tabsLayout = new("UIListLayout", {Padding = UDim.new(0,8), SortOrder = Enum.SortOrder.LayoutOrder}, tabsPanel)
-local tabsPad = new("UIPadding", {PaddingLeft = UDim.new(0,12), PaddingTop = UDim.new(0,8)}, tabsPanel)
+new("UIPadding", {PaddingLeft = UDim.new(0,12), PaddingTop = UDim.new(0,8)}, tabsPanel)
 
--- buttons panel (right) scrollable
+-- Buttons panel (right scrollable)
 local buttonsPanel = new("ScrollingFrame", {
+    Parent = main,
     Name = "ButtonsPanel",
-    Size = UDim2.new(1, -176, 1, -118),
+    Size = UDim2.new(1,-176,1,-118),
     Position = UDim2.new(0,176,0,90),
     BackgroundTransparency = 1,
     CanvasSize = UDim2.new(0,0,0,0),
     ScrollBarThickness = 8,
-    Parent = main,
-})
+}, main)
 local buttonsLayout = new("UIListLayout", {Padding = UDim.new(0,8), SortOrder = Enum.SortOrder.LayoutOrder}, buttonsPanel)
-local buttonsPad = new("UIPadding", {PaddingLeft = UDim.new(0,8), PaddingRight = UDim.new(0,8), PaddingTop = UDim.new(0,8)}, buttonsPanel)
+new("UIPadding", {PaddingLeft = UDim.new(0,8), PaddingRight = UDim.new(0,8), PaddingTop = UDim.new(0,8)}, buttonsPanel)
 
--- helper: update canvas height reliably
 local function updateCanvas()
     RunService.Heartbeat:Wait()
     buttonsPanel.CanvasSize = UDim2.new(0,0,0, buttonsLayout.AbsoluteContentSize.Y + 12)
 end
 
--- button factory with hover
+-- Button factory (hover, click wrapper)
 local function makeButton(text, parent, callback)
     local btn = new("TextButton", {
+        Parent = parent,
         Size = UDim2.new(1,0,0,40),
         BackgroundColor3 = Color3.fromRGB(72,72,72),
         BorderSizePixel = 0,
@@ -150,7 +138,6 @@ local function makeButton(text, parent, callback)
         TextColor3 = Color3.fromRGB(255,255,255),
         Text = text,
         AutoButtonColor = false,
-        Parent = parent,
     }, parent)
     new("UICorner", {CornerRadius = UDim.new(0,6)}, btn)
     btn.MouseEnter:Connect(function()
@@ -167,25 +154,23 @@ local function makeButton(text, parent, callback)
 end
 
 local function clearButtons()
-    for _, c in ipairs(buttonsPanel:GetChildren()) do
+    for _,c in ipairs(buttonsPanel:GetChildren()) do
         if c:IsA("TextButton") then c:Destroy() end
     end
 end
 
--- Player features state
+-- Player state
 local noclipActive = false
 local infiniteJumpActive = false
 local flyingActive = false
 local flyBV, flyBG = nil, nil
-local moveKeys = {W = false, A = false, S = false, D = false}
-local flySpeed = 60
+local moveKeys = {W=false, A=false, S=false, D=false}
+local baseFlySpeed = 60
 
--- fully draggable (global InputChanged so dragging continues even when cursor leaves UI)
+-- Draggable (global)
 local dragging = false
-local dragStart
-local startPos
-local UIS = UserInputService -- alias
-
+local dragStart, startPos
+local UIS = UserInputService
 local function updateDrag(input)
     local delta = input.Position - dragStart
     main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
@@ -198,62 +183,49 @@ main.InputBegan:Connect(function(input)
         startPos = main.Position
     end
 end)
-
 UIS.InputChanged:Connect(function(input)
     if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
         updateDrag(input)
     end
 end)
-
 UIS.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         dragging = false
     end
 end)
 
--- Minimize / maximize behavior
+-- Minimize / Maximize behavior
 local minimized = false
-local originalSize = main.Size
-local originalButtonsVisible = true
-
-local function minimize()
-    if minimized then return end
-    minimized = true
-    toggleBtn.Text = "Maximize"
-    -- animate size to title-only and hide content
-    TweenService:Create(main, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(originalSize.X.Scale, originalSize.X.Offset, 0, 70)}):Play()
-    -- hide content after short delay so it looks clean
-    spawn(function() wait(0.12) buttonsPanel.Visible = false end)
-end
-
-local function maximize()
-    if not minimized then return end
-    minimized = false
-    toggleBtn.Text = "Minimize"
-    buttonsPanel.Visible = true
-    TweenService:Create(main, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = originalSize}):Play()
-end
-
+local origSize = main.Size
 toggleBtn.MouseButton1Click:Connect(function()
-    if minimized then maximize() else minimize() end
+    if minimized then
+        minimized = false
+        toggleBtn.Text = "Minimize"
+        buttonsPanel.Visible = true
+        TweenService:Create(main, TweenInfo.new(0.16, Enum.EasingStyle.Quad), {Size = origSize}):Play()
+    else
+        minimized = true
+        toggleBtn.Text = "Maximize"
+        TweenService:Create(main, TweenInfo.new(0.16, Enum.EasingStyle.Quad), {Size = UDim2.new(origSize.X.Scale, origSize.X.Offset, 0, 70)}):Play()
+        spawn(function() wait(0.12) buttonsPanel.Visible = false end)
+    end
 end)
 
--- Toggle UI with Delete key using ContextActionService
+-- Toggle UI with Delete (robust)
 local visible = true
 local function setVisible(v)
     visible = v
     if v then
         main.Visible = true
-        -- small pop-in animation
-        main.Position = UDim2.new(main.Position.X.Scale, main.Position.X.Offset, main.Position.Y.Scale, main.Position.Y.Offset + 12)
-        TweenService:Create(main, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = UDim2.new(main.Position.X.Scale, main.Position.X.Offset, main.Position.Y.Scale, main.Position.Y.Offset - 12)}):Play()
+        main.Position = UDim2.new(0.5, -260, 0.5, -260 + 12)
+        TweenService:Create(main, TweenInfo.new(0.18, Enum.EasingStyle.Quad), {Position = UDim2.new(0.5, -260, 0.5, -260)}):Play()
     else
-        TweenService:Create(main, TweenInfo.new(0.12), {Position = UDim2.new(main.Position.X.Scale, main.Position.X.Offset, main.Position.Y.Scale, main.Position.Y.Offset + 12)}):Play()
+        TweenService:Create(main, TweenInfo.new(0.12, Enum.EasingStyle.Quad), {Position = UDim2.new(0.5, -260, 0.5, -260 + 12)}):Play()
         spawn(function() wait(0.14) main.Visible = false end)
     end
 end
 
-ContextActionService:BindAction("BMF_TOGGLE_UI", function(_, state, input)
+ContextActionService:BindAction("BMF_TOGGLE_UI", function(_, state)
     if state == Enum.UserInputState.Begin then
         setVisible(not visible)
         setError(visible and "Menu opened" or "Menu closed")
@@ -261,29 +233,23 @@ ContextActionService:BindAction("BMF_TOGGLE_UI", function(_, state, input)
     return Enum.ContextActionResult.Sink
 end, false, Enum.KeyCode.Delete)
 
--- Fly movement: WASD keys handling
-UIS.InputBegan:Connect(function(input, isTyping)
-    if isTyping then return end
+-- WASD fly input
+UIS.InputBegan:Connect(function(input, typing)
+    if typing then return end
     if input.UserInputType == Enum.UserInputType.Keyboard then
-        local key = input.KeyCode.Name
-        if key == "W" or key == "A" or key == "S" or key == "D" then
-            moveKeys[key] = true
-        end
-        -- allow holding SHIFT to increase speed optionally (not required)
-        if key == "LeftShift" or key == "RightShift" then flySpeed = 120 end
+        local k = input.KeyCode.Name
+        if k == "W" or k == "A" or k == "S" or k == "D" then moveKeys[k] = true end
+        if k == "LeftShift" or k == "RightShift" then baseFlySpeed = 120 end
     end
 end)
 UIS.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.Keyboard then
-        local key = input.KeyCode.Name
-        if key == "W" or key == "A" or key == "S" or key == "D" then
-            moveKeys[key] = false
-        end
-        if key == "LeftShift" or key == "RightShift" then flySpeed = 60 end
+        local k = input.KeyCode.Name
+        if k == "W" or k == "A" or k == "S" or k == "D" then moveKeys[k] = false end
+        if k == "LeftShift" or k == "RightShift" then baseFlySpeed = 60 end
     end
 end)
 
--- movement vector helper (camera relative)
 local function flyDirectionFromKeys()
     local cam = workspace.CurrentCamera
     if not cam then return Vector3.new() end
@@ -294,21 +260,15 @@ local function flyDirectionFromKeys()
     if moveKeys.S then dir = dir - Vector3.new(forward.X, 0, forward.Z) end
     if moveKeys.D then dir = dir + Vector3.new(right.X, 0, right.Z) end
     if moveKeys.A then dir = dir - Vector3.new(right.X, 0, right.Z) end
-    -- normalize and return
-    if dir.Magnitude > 0 then
-        return dir.Unit
-    end
+    if dir.Magnitude > 0 then return dir.Unit end
     return Vector3.new()
 end
 
--- RunService handlers for noclip and flying (single connections)
+-- Run loops: noclip + fly
 RunService.Stepped:Connect(function()
-    -- noclip handling
     if noclipActive and player.Character then
-        for _, p in ipairs(player.Character:GetDescendants()) do
-            if p:IsA("BasePart") then
-                p.CanCollide = false
-            end
+        for _,p in ipairs(player.Character:GetDescendants()) do
+            if p:IsA("BasePart") then p.CanCollide = false end
         end
     end
 end)
@@ -317,18 +277,17 @@ RunService.RenderStepped:Connect(function()
     if flyingActive and player.Character and flyBV and flyBG then
         local dir = flyDirectionFromKeys()
         if dir.Magnitude > 0 then
-            flyBV.Velocity = Vector3.new(dir.X, 0, dir.Z) * flySpeed
+            flyBV.Velocity = Vector3.new(dir.X, 0, dir.Z) * baseFlySpeed
         else
-            -- maintain small stabilizing velocity to keep body from falling
             flyBV.Velocity = Vector3.new(0, 0, 0)
         end
-        -- keep orientation aligned with camera for nicer feel
+        local root = player.Character:GetPrimaryPartCFrame()
         local cam = workspace.CurrentCamera
-        if cam then flyBG.CFrame = CFrame.new(player.Character:GetPrimaryPartCFrame().p, player.Character:GetPrimaryPartCFrame().p + cam.CFrame.LookVector) end
+        if cam then flyBG.CFrame = CFrame.new(root.p, root.p + cam.CFrame.LookVector) end
     end
 end)
 
--- jump request for infinite jump
+-- Infinite jump
 UserInputService.JumpRequest:Connect(function()
     if infiniteJumpActive and player.Character then
         local hum = player.Character:FindFirstChildOfClass("Humanoid")
@@ -336,7 +295,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- Teams helper: find or create team, set TeamColor
+-- Teams helper (colors requested)
 local teamColorMap = {
     ["Neutral"] = BrickColor.new("Medium stone grey"),
     ["Inmates"] = BrickColor.new("Bright orange"),
@@ -345,113 +304,60 @@ local teamColorMap = {
 }
 
 local function getOrCreateTeam(name)
-    local t = TeamsService:FindFirstChild(name)
-    if t and t:IsA("Team") then
-        return t
-    end
-    -- try search by Team.Name in children
-    for _, child in ipairs(TeamsService:GetChildren()) do
-        if child:IsA("Team") and child.Name:lower() == name:lower() then
-            return child
+    for _,c in ipairs(TeamsService:GetChildren()) do
+        if c:IsA("Team") and c.Name:lower() == name:lower() then
+            return c
         end
     end
-    -- create team
-    local ok, team = pcall(function()
+    local ok, t = pcall(function()
         local nt = Instance.new("Team")
         nt.Name = name
         nt.TeamColor = teamColorMap[name] or BrickColor.new("Medium stone grey")
         nt.Parent = TeamsService
         return nt
     end)
-    if ok then return team end
+    if ok then return t end
     return nil
 end
 
 local function switchTeam(name)
     local t = getOrCreateTeam(name)
-    if not t then
-        setError("Team create/find failed: "..tostring(name))
-        return
-    end
-    -- set team on player
+    if not t then setError("Team error: "..tostring(name)); return end
     player.Team = t
-    -- set TeamColor also (some games check TeamColor)
     pcall(function() player.TeamColor = t.TeamColor end)
-    -- kill humanoid to respawn as that team (safe)
     local char = player.Character
     if char then
         local hum = char:FindFirstChildOfClass("Humanoid")
-        if hum and hum.Health > 0 then
-            hum.Health = 0
-            setError("Switched to "..name.." and reset.")
-            return
-        end
+        if hum and hum.Health > 0 then hum.Health = 0; setError("Switched to "..name.." & reset") return end
     end
-    -- fallback
     local ok, err = pcall(function() player:LoadCharacter() end)
-    if ok then setError("Switched to "..name.." and loaded.") else setError("Team switch error: "..tostring(err)) end
+    if ok then setError("Switched to "..name.." & loaded") else setError("Team load error: "..tostring(err)) end
 end
 
--- Tabs population functions
+-- Tab populators
 local function populatePlayerTab()
     clearButtons()
-    makeButton("Noclip", buttonsPanel, function()
-        noclipActive = true
-        setError("Noclip activated")
-    end)
-    makeButton("Unclip", buttonsPanel, function()
-        noclipActive = false
-        if player.Character then
-            for _, p in ipairs(player.Character:GetDescendants()) do
-                if p:IsA("BasePart") then p.CanCollide = true end
-            end
-        end
-        setError("Noclip deactivated")
-    end)
+    makeButton("Noclip", buttonsPanel, function() noclipActive = true; setError("Noclip ON") end)
+    makeButton("Unclip", buttonsPanel, function() noclipActive = false; if player.Character then for _,p in ipairs(player.Character:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = true end end end; setError("Noclip OFF") end)
     makeButton("Fly", buttonsPanel, function()
         if flyingActive then setError("Already flying"); return end
         local char = player.Character
         if not char then setError("No character"); return end
         local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChildWhichIsA("BasePart")
-        if not root then setError("No HumanoidRootPart"); return end
+        if not root then setError("No root"); return end
         flyingActive = true
-        flyBV = Instance.new("BodyVelocity")
-        flyBV.MaxForce = Vector3.new(1e6,1e6,1e6)
-        flyBV.Parent = root
-        flyBG = Instance.new("BodyGyro")
-        flyBG.MaxTorque = Vector3.new(1e6,1e6,1e6)
-        flyBG.Parent = root
-        setError("Fly activated (use WASD to move; Shift to boost)")
+        flyBV = Instance.new("BodyVelocity", root); flyBV.MaxForce = Vector3.new(1e6,1e6,1e6)
+        flyBG = Instance.new("BodyGyro", root); flyBG.MaxTorque = Vector3.new(1e6,1e6,1e6)
+        setError("Fly ON (WASD to move, Shift to boost)")
     end)
-    makeButton("Unfly", buttonsPanel, function()
-        flyingActive = false
-        if flyBV then flyBV:Destroy(); flyBV = nil end
-        if flyBG then flyBG:Destroy(); flyBG = nil end
-        setError("Fly deactivated")
-    end)
-    makeButton("Infinite Jump (toggle)", buttonsPanel, function()
-        infiniteJumpActive = not infiniteJumpActive
-        setError("Infinite Jump "..(infiniteJumpActive and "ON" or "OFF"))
-    end)
-    makeButton("Speed Hack (50)", buttonsPanel, function()
-        if player.Character then
-            local hum = player.Character:FindFirstChildOfClass("Humanoid")
-            if hum then hum.WalkSpeed = 50; setError("WalkSpeed set to 50"); return end
-        end
-        setError("Humanoid not found")
-    end)
+    makeButton("Unfly", buttonsPanel, function() flyingActive = false; if flyBV then flyBV:Destroy(); flyBV=nil end; if flyBG then flyBG:Destroy(); flyBG=nil end; setError("Fly OFF") end)
+    makeButton("Infinite Jump (toggle)", buttonsPanel, function() infiniteJumpActive = not infiniteJumpActive; setError("Infinite Jump "..(infiniteJumpActive and "ON" or "OFF")) end)
+    makeButton("Speed Hack (50)", buttonsPanel, function() local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid"); if hum then hum.WalkSpeed = 50; setError("WalkSpeed = 50") else setError("Humanoid missing") end end)
     makeButton("Reset Character", buttonsPanel, function()
         local char = player.Character
-        if char then
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            if hum and hum.Health > 0 then
-                hum.Health = 0
-                setError("Character reset (killed Humanoid)")
-                return
-            end
-        end
+        if char then local hum = char:FindFirstChildOfClass("Humanoid") if hum and hum.Health>0 then hum.Health = 0; setError("Character reset") return end end
         local ok, err = pcall(function() player:LoadCharacter() end)
-        if ok then setError("Character reset (fallback LoadCharacter)") else setError("Reset error: "..tostring(err)) end
+        if ok then setError("Character loaded") else setError("Reset error: "..tostring(err)) end
     end)
     updateCanvas()
 end
@@ -469,24 +375,18 @@ local function populateScriptsTab()
     clearButtons()
     makeButton("Infinite Yield", buttonsPanel, function()
         setError("Running Infinite Yield...")
-        local ok, err = pcall(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
-        end)
-        if ok then setError("Infinite Yield executed") else setError("Infinite Yield error: "..tostring(err)) end
+        local ok, err = pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))() end)
+        if ok then setError("Infinite Yield OK") else setError("InfiniteYield err: "..tostring(err)) end
     end)
     makeButton("Dex Explorer", buttonsPanel, function()
         setError("Running Dex Explorer...")
-        local ok, err = pcall(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/dex.lua"))()
-        end)
-        if ok then setError("Dex executed") else setError("Dex error: "..tostring(err)) end
+        local ok, err = pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/dex.lua"))() end)
+        if ok then setError("Dex OK") else setError("Dex err: "..tostring(err)) end
     end)
     makeButton("Chat Bypass", buttonsPanel, function()
         setError("Running Chat Bypass...")
-        local ok, err = pcall(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/AnnaRoblox/AnnaBypasser/refs/heads/main/AnnaBypasser.lua", true))()
-        end)
-        if ok then setError("Chat Bypass executed") else setError("Chat error: "..tostring(err)) end
+        local ok, err = pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/AnnaRoblox/AnnaBypasser/refs/heads/main/AnnaBypasser.lua", true))() end)
+        if ok then setError("Chat Bypass OK") else setError("Chat err: "..tostring(err)) end
     end)
     updateCanvas()
 end
@@ -497,50 +397,40 @@ local function populateGeneric()
     updateCanvas()
 end
 
--- create tab buttons
+-- Create tab buttons
 local tabNames = {"Player","Teams","Teleports","Weapons","Cheats","Misc","Scripts"}
 local tabButtons = {}
-for _, name in ipairs(tabNames) do
+for _,name in ipairs(tabNames) do
     local tbtn = new("TextButton", {
-        Size = UDim2.new(1, -24, 0, 40),
+        Parent = tabsPanel,
+        Size = UDim2.new(1,-24,0,40),
         BackgroundColor3 = Color3.fromRGB(55,55,55),
         Text = name,
         Font = Enum.Font.Gotham,
         TextSize = 15,
         TextColor3 = Color3.fromRGB(255,255,255),
-        Parent = tabsPanel,
     }, tabsPanel)
     new("UICorner", {CornerRadius = UDim.new(0,6)}, tbtn)
-
     tbtn.MouseButton1Click:Connect(function()
-        for _, c in ipairs(tabsPanel:GetChildren()) do
-            if c:IsA("TextButton") then c.BackgroundColor3 = Color3.fromRGB(55,55,55) end
-        end
+        for _,c in ipairs(tabsPanel:GetChildren()) do if c:IsA("TextButton") then c.BackgroundColor3 = Color3.fromRGB(55,55,55) end end
         tbtn.BackgroundColor3 = Color3.fromRGB(92,92,92)
-
-        if name == "Player" then populatePlayerTab()
-        elseif name == "Teams" then populateTeamsTab()
-        elseif name == "Scripts" then populateScriptsTab()
-        else populateGeneric() end
+        if name == "Player" then populatePlayerTab() elseif name == "Teams" then populateTeamsTab() elseif name == "Scripts" then populateScriptsTab() else populateGeneric() end
     end)
-
     table.insert(tabButtons, tbtn)
 end
 
--- default open Player tab
-for _, t in ipairs(tabButtons) do
-    if t.Text == "Player" then
-        t:CaptureFocus()
-        t:MouseButton1Click()
-        t.BackgroundColor3 = Color3.fromRGB(92,92,92)
+-- Default open Player tab
+for _,tbtn in ipairs(tabButtons) do
+    if tbtn.Text == "Player" then
+        tbtn:CaptureFocus()
+        tbtn:MouseButton1Click()
+        tbtn.BackgroundColor3 = Color3.fromRGB(92,92,92)
         break
     end
 end
 
--- final initialization
+-- Finalize
 updateCanvas()
-setError("BMF UI Loaded")
+setError("BMF UI Loaded!")
 main.Visible = true
-
--- done
-print("Prison Life - BMF UI (final) loaded")
+print("BMF UI loaded!")
