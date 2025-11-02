@@ -1,38 +1,32 @@
--- Roblox Lua Script: Prison Life - BMF (Clean UI Overhaul)
--- Features: Draggable, Tabs, Scrollable Buttons, Error Logging, Toggle with Delete key
+-- Roblox Lua Script: Prison Life - BMF (Perfectly Repositioned UI)
+-- Clean, sleek, professional layout
 
 -- Services
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local PlayerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
-local RunService = game:GetService("RunService")
 
 -- ScreenGui
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Parent = PlayerGui
 ScreenGui.Name = "PrisonLifeBMFUI"
 ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = PlayerGui
 
 -- Main Frame
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 450, 0, 500)
-MainFrame.Position = UDim2.new(0.5, -225, 0.5, -250)
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.Size = UDim2.new(0, 480, 0, 520)
+MainFrame.Position = UDim2.new(0.5, -240, 0.5, -260)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.Parent = ScreenGui
 
--- UI Gradient for slight style
-local Gradient = Instance.new("UIGradient")
-Gradient.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(35,35,35)), ColorSequenceKeypoint.new(1, Color3.fromRGB(20,20,20))})
-Gradient.Parent = MainFrame
-
 -- Title
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 50)
 Title.Position = UDim2.new(0, 0, 0, 0)
-Title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+Title.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 Title.Text = "Prison Life - BMF"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
@@ -42,46 +36,47 @@ Title.Parent = MainFrame
 -- Error Log
 local ErrorLog = Instance.new("TextLabel")
 ErrorLog.Size = UDim2.new(1, -20, 0, 30)
-ErrorLog.Position = UDim2.new(0, 10, 0, 50)
-ErrorLog.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+ErrorLog.Position = UDim2.new(0, 10, 0, 55)
+ErrorLog.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 ErrorLog.Text = "Error Log: None"
 ErrorLog.TextColor3 = Color3.fromRGB(255, 85, 85)
 ErrorLog.Font = Enum.Font.Gotham
 ErrorLog.TextSize = 16
 ErrorLog.TextWrapped = true
-ErrorLog.TextYAlignment = Enum.TextYAlignment.Top
+ErrorLog.TextXAlignment = Enum.TextXAlignment.Left
+ErrorLog.TextYAlignment = Enum.TextYAlignment.Center
 ErrorLog.Parent = MainFrame
 
--- Tabs Container
+-- Tabs Frame (left)
 local TabsFrame = Instance.new("Frame")
-TabsFrame.Size = UDim2.new(0, 140, 1, -90)
-TabsFrame.Position = UDim2.new(0, 0, 0, 90)
+TabsFrame.Size = UDim2.new(0, 140, 1, -100)
+TabsFrame.Position = UDim2.new(0, 0, 0, 95)
 TabsFrame.BackgroundTransparency = 1
 TabsFrame.Parent = MainFrame
 
--- Buttons Container (scrollable)
+-- Buttons Frame (right, scrollable)
 local ButtonsFrame = Instance.new("ScrollingFrame")
-ButtonsFrame.Size = UDim2.new(1, -140, 1, -90)
-ButtonsFrame.Position = UDim2.new(0, 140, 0, 90)
+ButtonsFrame.Size = UDim2.new(1, -150, 1, -100)
+ButtonsFrame.Position = UDim2.new(0, 150, 0, 95)
 ButtonsFrame.BackgroundTransparency = 1
 ButtonsFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 ButtonsFrame.ScrollBarThickness = 6
 ButtonsFrame.Parent = MainFrame
 
 local UIListLayout = Instance.new("UIListLayout")
-UIListLayout.Padding = UDim.new(0, 5)
+UIListLayout.Padding = UDim.new(0, 8)
 UIListLayout.Parent = ButtonsFrame
 
 -- Tabs
 local tabs = {"Player", "Teams", "Teleports", "Weapons", "Cheats", "Misc", "Scripts"}
 local tabButtons = {}
-local activeTabColor = Color3.fromRGB(80, 80, 80)
+local activeTabColor = Color3.fromRGB(90, 90, 90)
 local inactiveTabColor = Color3.fromRGB(60, 60, 60)
 
 for i, tabName in ipairs(tabs) do
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -10, 0, 40)
-    btn.Position = UDim2.new(0, 5, 0, (i-1)*50)
+    btn.Size = UDim2.new(1, -20, 0, 40)
+    btn.Position = UDim2.new(0, 10, 0, (i-1)*55)
     btn.BackgroundColor3 = inactiveTabColor
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Font = Enum.Font.Gotham
@@ -97,14 +92,15 @@ for i, tabName in ipairs(tabs) do
         end
         btn.BackgroundColor3 = activeTabColor
 
-        -- Clear and add placeholder buttons
+        -- Clear buttons
         for _, child in ipairs(ButtonsFrame:GetChildren()) do
             if child:IsA("TextButton") then child:Destroy() end
         end
 
-        for j = 1, 6 do
+        -- Add placeholder WIP buttons
+        for j = 1, 7 do
             local wipButton = Instance.new("TextButton")
-            wipButton.Size = UDim2.new(1, -20, 0, 35)
+            wipButton.Size = UDim2.new(1, -20, 0, 40)
             wipButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
             wipButton.TextColor3 = Color3.fromRGB(255, 255, 255)
             wipButton.Font = Enum.Font.Gotham
@@ -113,9 +109,8 @@ for i, tabName in ipairs(tabs) do
             wipButton.Parent = ButtonsFrame
         end
 
-        -- Update scrollable canvas size
-        local totalSize = UIListLayout.AbsoluteContentSize.Y
-        ButtonsFrame.CanvasSize = UDim2.new(0, 0, 0, totalSize + 10)
+        -- Adjust scroll canvas size
+        ButtonsFrame.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + 10)
     end)
 end
 
@@ -129,5 +124,4 @@ UIS.InputBegan:Connect(function(input, processed)
     end
 end)
 
--- Smooth UI loading message
-print("Prison Life - BMF Clean UI Loaded Successfully")
+print("Prison Life - BMF Perfectly Repositioned UI Loaded")
