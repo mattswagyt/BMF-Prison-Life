@@ -8,6 +8,8 @@ local TeamsService = game:GetService("Teams")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local workspaceRemote = workspace:WaitForChild("Remote")
 
 -- helper to create instances
 local function new(class, props, parent)
@@ -199,17 +201,21 @@ toggleBtn.MouseButton1Click:Connect(function()
     if minimized then
         minimized = false
         toggleBtn.Text = "Minimize"
+        errFrame.Visible = true
+        tabsPanel.Visible = true
         buttonsPanel.Visible = true
         TweenService:Create(main, TweenInfo.new(0.16, Enum.EasingStyle.Quad), {Size = origSize}):Play()
     else
         minimized = true
         toggleBtn.Text = "Maximize"
-        TweenService:Create(main, TweenInfo.new(0.16, Enum.EasingStyle.Quad), {Size = UDim2.new(origSize.X.Scale, origSize.X.Offset, 0, 70)}):Play()
-        spawn(function() wait(0.12) buttonsPanel.Visible = false end)
+        errFrame.Visible = false
+        tabsPanel.Visible = false
+        buttonsPanel.Visible = false
+        TweenService:Create(main, TweenInfo.new(0.16, Enum.EasingStyle.Quad), {Size = UDim2.new(origSize.X.Scale, origSize.X.Offset, 0, 48)}):Play()
     end
 end)
 
--- Toggle UI with Delete (robust)
+-- Toggle UI with Delete
 local visible = true
 local function setVisible(v)
     visible = v
@@ -293,7 +299,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- Teams helper (colors requested)
+-- Teams helper
 local teamColorMap = {
     ["Neutral"] = BrickColor.new("Medium stone grey"),
     ["Inmates"] = BrickColor.new("Bright orange"),
@@ -323,6 +329,14 @@ local function switchTeam(name)
     if not t then setError("Team error: "..tostring(name)); return end
     player.Team = t
     pcall(function() player.TeamColor = t.TeamColor end)
+    
+    -- Fire remote for team persist
+    if workspaceRemote:FindFirstChild("TeamEvent") then
+        pcall(function()
+            workspaceRemote.TeamEvent:FireServer(name)
+        end)
+    end
+    
     local char = player.Character
     if char then
         local hum = char:FindFirstChildOfClass("Humanoid")
@@ -369,6 +383,34 @@ local function populateTeamsTab()
     updateCanvas()
 end
 
+local function populateTeleportsTab()
+    clearButtons()
+    local teleports = {
+        ["Armoury"] = Vector3.new(830, 100, 2239),
+        ["Yard"] = Vector3.new(795, 98, 2470),
+        ["Nexus"] = Vector3.new(912, 100, 2375),
+        ["Cafeteria"] = Vector3.new(903, 100, 2320),
+        ["Cell Block"] = Vector3.new(916, 100, 2447),
+        ["Lobby"] = Vector3.new(704, 100, 2274),
+        ["Garage"] = Vector3.new(616, 98, 2475),
+        ["Tower"] = Vector3.new(823, 126, 2589),
+        ["Roof"] = Vector3.new(822, 119, 2321),
+        ["Sewer"] = Vector3.new(917, 98, 2102),
+        ["Gate"] = Vector3.new(496, 98, 2216),
+        ["Criminal Base"] = Vector3.new(-932, 94, 2051),
+        ["Neutral Spawn"] = Vector3.new(864, 40, 2342),
+    }
+    for name,pos in pairs(teleports) do
+        makeButton(name, buttonsPanel, function()
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                player.Character.HumanoidRootPart.CFrame = CFrame.new(pos)
+                setError("Teleported to "..name)
+            end
+        end)
+    end
+    updateCanvas()
+end
+
 local function populateScriptsTab()
     clearButtons()
     makeButton("Infinite Yield", buttonsPanel, function()
@@ -412,7 +454,11 @@ for _,name in ipairs(tabNames) do
     tbtn.MouseButton1Click:Connect(function()
         for _,c in ipairs(tabsPanel:GetChildren()) do if c:IsA("TextButton") then c.BackgroundColor3 = Color3.fromRGB(55,55,55) end end
         tbtn.BackgroundColor3 = Color3.fromRGB(92,92,92)
-        if name == "Player" then populatePlayerTab() elseif name == "Teams" then populateTeamsTab() elseif name == "Scripts" then populateScriptsTab() else populateGeneric() end
+        if name == "Player" then populatePlayerTab()
+        elseif name == "Teams" then populateTeamsTab()
+        elseif name == "Teleports" then populateTeleportsTab()
+        elseif name == "Scripts" then populateScriptsTab()
+        else populateGeneric() end
     end)
     table.insert(tabButtons, tbtn)
 end
