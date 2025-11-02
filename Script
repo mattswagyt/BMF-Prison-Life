@@ -1,292 +1,420 @@
---== Prison Life - BMF UI (Final) ==--
--- Features:
--- • Clean draggable UI, Delete to toggle
--- • Player tab: Noclip, Unclip, Fly, Unfly, Infinite Jump, Speed (50), Reset
--- • Scripts tab: Infinite Yield, Dex Explorer, Chat Bypass (safe pcall + error log)
--- • Smooth layout, divider, scrollable buttons
+--== Prison Life - BMF UI (Bugfix + UI polish) ==--
+-- • Toggle UI with Delete (robust via ContextActionService)
+-- • Reset Character uses Humanoid.Health = 0 (no backend-only error)
+-- • Clean, consistent layout + hover feedback + smooth show/hide tween
+-- • Includes Player tab (Noclip, Unclip, Fly, Unfly, Infinite Jump, Speed 50, Reset)
+-- • Includes Scripts tab (Infinite Yield, Dex Explorer, Chat Bypass)
 
 -- Services
 local Players = game:GetService("Players")
-local UIS = game:GetService("UserInputService")
+local ContextActionService = game:GetService("ContextActionService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 
-local Player = Players.LocalPlayer
-local PlayerGui = Player:WaitForChild("PlayerGui")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
--- UI Setup
-local ScreenGui = Instance.new("ScreenGui", PlayerGui)
-ScreenGui.Name = "BMF_UI"
-
-local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 500, 0, 520)
-MainFrame.Position = UDim2.new(0.5, -250, 0.5, -260)
-MainFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
-MainFrame.BorderSizePixel = 0
-MainFrame.Active = true
-MainFrame.Draggable = true
-
-local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0, 45)
-Title.BackgroundColor3 = Color3.fromRGB(40,40,40)
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 22
-Title.TextColor3 = Color3.fromRGB(255,255,255)
-Title.Text = "Prison Life - BMF"
-
-local ErrorLog = Instance.new("TextLabel", MainFrame)
-ErrorLog.Size = UDim2.new(1, -20, 0, 28)
-ErrorLog.Position = UDim2.new(0, 10, 0, 50)
-ErrorLog.BackgroundColor3 = Color3.fromRGB(45,45,45)
-ErrorLog.TextColor3 = Color3.fromRGB(255,90,90)
-ErrorLog.Font = Enum.Font.Gotham
-ErrorLog.TextSize = 15
-ErrorLog.TextXAlignment = Enum.TextXAlignment.Left
-ErrorLog.Text = "Error Log: None"
-
-local Divider = Instance.new("Frame", MainFrame)
-Divider.Size = UDim2.new(0, 2, 1, -90)
-Divider.Position = UDim2.new(0, 140, 0, 90)
-Divider.BackgroundColor3 = Color3.fromRGB(75,75,75)
-
-local Tabs = Instance.new("Frame", MainFrame)
-Tabs.Size = UDim2.new(0, 140, 1, -90)
-Tabs.Position = UDim2.new(0, 0, 0, 90)
-Tabs.BackgroundTransparency = 1
-
-local TabList = Instance.new("UIListLayout", Tabs)
-TabList.Padding = UDim.new(0, 6)
-
-local ButtonPanel = Instance.new("ScrollingFrame", MainFrame)
-ButtonPanel.Size = UDim2.new(1, -160, 1, -90)
-ButtonPanel.Position = UDim2.new(0, 160, 0, 90)
-ButtonPanel.BackgroundTransparency = 1
-ButtonPanel.CanvasSize = UDim2.new(0,0,0,0)
-ButtonPanel.ScrollBarThickness = 6
-
-local ButtonLayout = Instance.new("UIListLayout", ButtonPanel)
-ButtonLayout.Padding = UDim.new(0, 6)
-
--- Utility
-local function Log(msg)
-    ErrorLog.Text = "Error Log: " .. tostring(msg)
+-- small helper to make instances
+local function new(class, props, parent)
+    local obj = Instance.new(class)
+    if props then
+        for k,v in pairs(props) do obj[k] = v end
+    end
+    obj.Parent = parent
+    return obj
 end
 
-local function NewButton(text, callback)
-    local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1, -10, 0, 38)
-    b.BackgroundColor3 = Color3.fromRGB(65,65,65)
-    b.Font = Enum.Font.Gotham
-    b.TextSize = 16
-    b.TextColor3 = Color3.fromRGB(255,255,255)
-    b.Text = text
-    b.Parent = ButtonPanel
-    b.AutoButtonColor = true
-    b.MouseButton1Click:Connect(function()
+-- main ScreenGui
+local screenGui = new("ScreenGui", {Name = "BMF_UI_v2", ResetOnSpawn = false}, playerGui)
+
+-- main container with slight drop shadow + rounded corners
+local main = new("Frame", {
+    Name = "Main",
+    Size = UDim2.new(0, 480, 0, 520),
+    Position = UDim2.new(0.5, -240, 0.5, -260),
+    BackgroundColor3 = Color3.fromRGB(30,30,30),
+    BorderSizePixel = 0,
+}, screenGui)
+
+new("UICorner", {CornerRadius = UDim.new(0,8)}, main)
+new("UIStroke", {Color = Color3.fromRGB(25,25,25), Thickness = 1, Transparency = 0.85}, main)
+
+-- Title
+local titleBar = new("Frame", {
+    Size = UDim2.new(1,0,0,50),
+    BackgroundColor3 = Color3.fromRGB(40,40,40),
+    BorderSizePixel = 0,
+    Parent = main
+}, main)
+new("UICorner", {CornerRadius = UDim.new(0,6)}, titleBar)
+
+local titleLabel = new("TextLabel", {
+    Text = "Prison Life - BMF",
+    Size = UDim2.new(1,-20,1,0),
+    Position = UDim2.new(0,10,0,0),
+    BackgroundTransparency = 1,
+    Font = Enum.Font.GothamBold,
+    TextSize = 20,
+    TextColor3 = Color3.fromRGB(255,255,255),
+    TextXAlignment = Enum.TextXAlignment.Left,
+}, titleBar)
+
+-- error log (single-line, clipped)
+local errorFrame = new("Frame", {
+    Size = UDim2.new(1,-20,0,30),
+    Position = UDim2.new(0,10,0,56),
+    BackgroundColor3 = Color3.fromRGB(44,44,44),
+    BorderSizePixel = 0,
+    Parent = main
+}, main)
+new("UICorner", {CornerRadius = UDim.new(0,6)}, errorFrame)
+
+local errorLabel = new("TextLabel", {
+    Text = "Error Log: None",
+    Size = UDim2.new(1,-12,1,0),
+    Position = UDim2.new(0,6,0,0),
+    BackgroundTransparency = 1,
+    Font = Enum.Font.Gotham,
+    TextSize = 14,
+    TextColor3 = Color3.fromRGB(255,100,100),
+    TextXAlignment = Enum.TextXAlignment.Left,
+    TextTruncate = Enum.TextTruncate.AtEnd,
+}, errorFrame)
+
+-- divider
+local divider = new("Frame", {
+    Size = UDim2.new(0,2,1,-110),
+    Position = UDim2.new(0,142,0,90),
+    BackgroundColor3 = Color3.fromRGB(70,70,70),
+    BorderSizePixel = 0,
+    Parent = main
+}, main)
+
+-- Tabs panel (left)
+local tabsPanel = new("Frame", {
+    Size = UDim2.new(0,140,1,-110),
+    Position = UDim2.new(0,0,0,90),
+    BackgroundTransparency = 1,
+    Parent = main
+}, main)
+local tabsLayout = new("UIListLayout", {Padding = UDim.new(0,8), SortOrder = Enum.SortOrder.LayoutOrder}, tabsPanel)
+local tabsPadding = new("UIPadding", {PaddingLeft = UDim.new(0,10), PaddingTop = UDim.new(0,6)}, tabsPanel)
+
+-- Buttons panel (right) - scrollable
+local buttonsPanel = new("ScrollingFrame", {
+    Name = "ButtonsPanel",
+    Size = UDim2.new(1,-160,1,-110),
+    Position = UDim2.new(0,160,0,90),
+    BackgroundTransparency = 1,
+    CanvasSize = UDim2.new(0,0,0,0),
+    ScrollBarThickness = 6,
+}, main)
+local buttonsLayout = new("UIListLayout", {Padding = UDim.new(0,8), SortOrder = Enum.SortOrder.LayoutOrder}, buttonsPanel)
+local buttonsPadding = new("UIPadding", {PaddingLeft = UDim.new(0,8), PaddingRight = UDim.new(0,8), PaddingTop = UDim.new(0,6)}, buttonsPanel)
+
+-- small helper: update canvas height reliably
+local function updateCanvas()
+    RunService.Heartbeat:Wait()
+    buttonsPanel.CanvasSize = UDim2.new(0,0,0, buttonsLayout.AbsoluteContentSize.Y + 12)
+end
+
+-- helper: log to errorLabel safely (short)
+local function setError(text)
+    local ok = pcall(function()
+        errorLabel.Text = "Error Log: "..tostring(text or "None")
+    end)
+    if not ok then warn("Failed to set error label") end
+end
+
+-- button factory with hover feedback
+local function makeButton(text, parent, callback)
+    local btn = new("TextButton", {
+        Size = UDim2.new(1,0,0,40),
+        BackgroundColor3 = Color3.fromRGB(70,70,70),
+        BorderSizePixel = 0,
+        Font = Enum.Font.Gotham,
+        TextSize = 15,
+        TextColor3 = Color3.fromRGB(255,255,255),
+        Text = text,
+        AutoButtonColor = false,
+        Parent = parent,
+    }, parent)
+    new("UICorner", {CornerRadius = UDim.new(0,6)}, btn)
+    -- hover tween
+    btn.MouseEnter:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(85,85,85)}):Play()
+    end)
+    btn.MouseLeave:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(70,70,70)}):Play()
+    end)
+    btn.MouseButton1Click:Connect(function()
         local ok, err = pcall(callback)
         if not ok then
-            Log(err)
+            setError(err)
         end
     end)
-    return b
+    return btn
 end
 
-local function ClearButtons()
-    for _, v in ipairs(ButtonPanel:GetChildren()) do
-        if v:IsA("TextButton") then v:Destroy() end
+-- Clear buttons helper
+local function clearButtons()
+    for _,child in ipairs(buttonsPanel:GetChildren()) do
+        if child:IsA("TextButton") then child:Destroy() end
     end
-end
-
-local function UpdateCanvas()
-    -- small wait so layout updates AbsoluteContentSize reliably
-    RunService.Heartbeat:Wait()
-    ButtonPanel.CanvasSize = UDim2.new(0,0,0, ButtonLayout.AbsoluteContentSize.Y + 10)
 end
 
 -- Player features state
 local noclipActive = false
 local infiniteJumpActive = false
 local flyingActive = false
-local bodyVel, bodyGyro = nil, nil
+local flyBV, flyBG
+local flyConnection -- to allow disconnect if needed
 
--- Single Stepped/RenderStepped connections to avoid duplicates
-RunService.Stepped:Connect(function()
-    if noclipActive and Player.Character then
-        for _, part in ipairs(Player.Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
-            end
-        end
+-- Nicer show/hide of main UI
+local visible = true
+local function setVisible(v)
+    visible = v
+    -- tween the main frame's transparency for smooth show/hide plus move
+    local tweenInfo = TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    if v then
+        main.Visible = true
+        -- fade in & slight slide
+        main.Position = UDim2.new(0.5, -240, 0.5, -260 + 14)
+        TweenService:Create(main, tweenInfo, {Position = UDim2.new(0.5, -240, 0.5, -260)}):Play()
+        TweenService:Create(main, tweenInfo, {BackgroundTransparency = 0}):Play()
+    else
+        TweenService:Create(main, tweenInfo, {Position = UDim2.new(0.5, -240, 0.5, -260 + 14)}):Play()
+        -- hide after short delay
+        spawn(function()
+            wait(0.16)
+            main.Visible = false
+        end)
     end
-end)
-
-RunService.RenderStepped:Connect(function()
-    if flyingActive and Player.Character and bodyVel and bodyGyro then
-        local cam = workspace.CurrentCamera
-        if cam then
-            -- forward movement based on camera; small multiplier for control
-            local look = cam.CFrame.LookVector
-            bodyVel.Velocity = look * 60
-            bodyGyro.CFrame = cam.CFrame
-        end
-    end
-end)
-
--- JumpRequest hookup (only once)
-UIS.JumpRequest:Connect(function()
-    if infiniteJumpActive and Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
-        Player.Character:FindFirstChildOfClass("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
-    end
-end)
-
--- Tab switching and tab creation
-local tabs = {"Player","Teams","Teleports","Weapons","Cheats","Misc","Scripts"}
-local tabButtons = {}
-
-local function PopulatePlayerTab()
-    ClearButtons()
-
-    NewButton("Noclip", function()
-        noclipActive = true
-        Log("Noclip activated")
-    end)
-
-    NewButton("Unclip", function()
-        noclipActive = false
-        if Player.Character then
-            for _, part in ipairs(Player.Character:GetDescendants()) do
-                if part:IsA("BasePart") then part.CanCollide = true end
-            end
-        end
-        Log("Noclip deactivated")
-    end)
-
-    NewButton("Fly", function()
-        if flyingActive then Log("Already flying") return end
-        if not Player.Character then Log("No character") return end
-        local root = Player.Character:FindFirstChild("HumanoidRootPart")
-        if not root then Log("No HumanoidRootPart") return end
-        flyingActive = true
-        bodyVel = Instance.new("BodyVelocity")
-        bodyVel.MaxForce = Vector3.new(1e6,1e6,1e6)
-        bodyVel.Parent = root
-        bodyGyro = Instance.new("BodyGyro")
-        bodyGyro.MaxTorque = Vector3.new(1e6,1e6,1e6)
-        bodyGyro.Parent = root
-        Log("Fly activated")
-    end)
-
-    NewButton("Unfly", function()
-        flyingActive = false
-        if bodyVel then bodyVel:Destroy(); bodyVel = nil end
-        if bodyGyro then bodyGyro:Destroy(); bodyGyro = nil end
-        Log("Fly deactivated")
-    end)
-
-    NewButton("Infinite Jump", function()
-        infiniteJumpActive = not infiniteJumpActive
-        Log("Infinite Jump: "..tostring(infiniteJumpActive and "ON" or "OFF"))
-    end)
-
-    NewButton("Speed Hack (50)", function()
-        if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
-            Player.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = 50
-            Log("WalkSpeed set to 50")
-        else
-            Log("Humanoid not found")
-        end
-    end)
-
-    NewButton("Reset Character", function()
-        Player:LoadCharacter()
-        Log("Character reset")
-    end)
-
-    UpdateCanvas()
 end
 
--- Scripts (safe pcall, update error log)
-local function PopulateScriptsTab()
-    ClearButtons()
+-- toggle binding (use ContextActionService to avoid focus issues)
+local TOGGLE_ACTION = "BMF_TOGGLE_UI"
+ContextActionService:BindAction(TOGGLE_ACTION, function(_, state, input)
+    if state == Enum.UserInputState.Begin then
+        setVisible(not visible)
+        setError(visible and "Menu opened" or "Menu closed")
+    end
+    return Enum.ContextActionResult.Sink
+end, false, Enum.KeyCode.Delete)
 
-    NewButton("Infinite Yield", function()
-        Log("Executing Infinite Yield...")
+-- Player Tab population
+local function populatePlayerTab()
+    clearButtons()
+
+    makeButton("Noclip", buttonsPanel, function()
+        noclipActive = true
+        setError("Noclip activated")
+        -- change parts every Stepped without creating duplicate connections
+        -- use RunService.Stepped (already bound below) so only flag is needed
+    end)
+
+    makeButton("Unclip", buttonsPanel, function()
+        noclipActive = false
+        if player.Character then
+            for _,p in ipairs(player.Character:GetDescendants()) do
+                if p:IsA("BasePart") then p.CanCollide = true end
+            end
+        end
+        setError("Noclip deactivated")
+    end)
+
+    makeButton("Fly", buttonsPanel, function()
+        if flyingActive then
+            setError("Already flying")
+            return
+        end
+        local char = player.Character
+        if not char then setError("No character") return end
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not root then setError("No HumanoidRootPart") return end
+
+        flyingActive = true
+        flyBV = Instance.new("BodyVelocity")
+        flyBV.MaxForce = Vector3.new(1e6,1e6,1e6)
+        flyBV.Parent = root
+        flyBG = Instance.new("BodyGyro")
+        flyBG.MaxTorque = Vector3.new(1e6,1e6,1e6)
+        flyBG.Parent = root
+
+        -- we already have RenderStepped updating velocity if flyingActive is true
+        setError("Fly activated")
+    end)
+
+    makeButton("Unfly", buttonsPanel, function()
+        flyingActive = false
+        if flyBV then flyBV:Destroy(); flyBV = nil end
+        if flyBG then flyBG:Destroy(); flyBG = nil end
+        setError("Fly deactivated")
+    end)
+
+    makeButton("Infinite Jump (toggle)", buttonsPanel, function()
+        infiniteJumpActive = not infiniteJumpActive
+        setError("Infinite Jump: " .. (infiniteJumpActive and "ON" or "OFF"))
+    end)
+
+    makeButton("Speed Hack (50)", buttonsPanel, function()
+        local char = player.Character
+        if char then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum.WalkSpeed = 50
+                setError("WalkSpeed set to 50")
+                return
+            end
+        end
+        setError("Humanoid not found")
+    end)
+
+    makeButton("Reset Character", buttonsPanel, function()
+        -- avoid LoadCharacter backend-only error: kill humanoid instead
+        local char = player.Character
+        if char then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum and hum.Health > 0 then
+                hum.Health = 0
+                setError("Character reset (killed Humanoid)")
+                return
+            end
+        end
+        -- fallback
+        local ok, err = pcall(function()
+            player:LoadCharacter()
+        end)
+        if ok then
+            setError("Character reset (fallback LoadCharacter)")
+        else
+            setError("Reset error: " .. tostring(err))
+        end
+    end)
+
+    updateCanvas()
+end
+
+-- Scripts Tab population
+local function populateScriptsTab()
+    clearButtons()
+
+    makeButton("Infinite Yield", buttonsPanel, function()
+        setError("Running Infinite Yield...")
         local ok, err = pcall(function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
         end)
-        if ok then Log("Infinite Yield executed") else Log("Infinite Yield error: "..tostring(err)) end
+        if ok then setError("Infinite Yield executed") else setError("Infinite Yield error: "..tostring(err)) end
     end)
 
-    NewButton("Dex Explorer", function()
-        Log("Executing Dex Explorer...")
+    makeButton("Dex Explorer", buttonsPanel, function()
+        setError("Running Dex Explorer...")
         local ok, err = pcall(function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/dex.lua"))()
         end)
-        if ok then Log("Dex Explorer executed") else Log("Dex Explorer error: "..tostring(err)) end
+        if ok then setError("Dex executed") else setError("Dex error: "..tostring(err)) end
     end)
 
-    NewButton("Chat Bypass", function()
-        Log("Executing Chat Bypass...")
+    makeButton("Chat Bypass", buttonsPanel, function()
+        setError("Running Chat Bypass...")
         local ok, err = pcall(function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/AnnaRoblox/AnnaBypasser/refs/heads/main/AnnaBypasser.lua", true))()
         end)
-        if ok then Log("Chat Bypass executed") else Log("Chat Bypass error: "..tostring(err)) end
+        if ok then setError("Chat Bypass executed") else setError("Chat error: "..tostring(err)) end
     end)
 
-    UpdateCanvas()
+    updateCanvas()
 end
 
-local function PopulateGeneric()
-    ClearButtons()
-    for i=1,6 do NewButton("WIP!", function() end) end
-    UpdateCanvas()
+-- Generic WIP tab
+local function populateGeneric()
+    clearButtons()
+    for i=1,6 do
+        makeButton("WIP!", buttonsPanel, function() end)
+    end
+    updateCanvas()
 end
 
--- Create tabs UI
-for _, name in ipairs(tabs) do
-    local tbtn = Instance.new("TextButton")
-    tbtn.Size = UDim2.new(1, -10, 0, 40)
-    tbtn.BackgroundColor3 = Color3.fromRGB(55,55,55)
-    tbtn.Font = Enum.Font.Gotham
-    tbtn.TextSize = 17
-    tbtn.TextColor3 = Color3.fromRGB(255,255,255)
-    tbtn.Text = name
-    tbtn.Parent = Tabs
+-- make tabs UI buttons
+local tabNames = {"Player","Teams","Teleports","Weapons","Cheats","Misc","Scripts"}
+local tabButtons = {}
+for i,name in ipairs(tabNames) do
+    local tbtn = new("TextButton", {
+        Size = UDim2.new(1,-12,0,40),
+        BackgroundColor3 = Color3.fromRGB(55,55,55),
+        Text = name,
+        Font = Enum.Font.Gotham,
+        TextSize = 15,
+        TextColor3 = Color3.fromRGB(255,255,255),
+        Parent = tabsPanel,
+    }, tabsPanel)
+    new("UICorner", {CornerRadius = UDim.new(0,6)}, tbtn)
 
     tbtn.MouseButton1Click:Connect(function()
-        -- visual highlight
-        for _, c in ipairs(Tabs:GetChildren()) do
+        -- highlight
+        for _,c in ipairs(tabsPanel:GetChildren()) do
             if c:IsA("TextButton") then c.BackgroundColor3 = Color3.fromRGB(55,55,55) end
         end
         tbtn.BackgroundColor3 = Color3.fromRGB(90,90,90)
 
         if name == "Player" then
-            PopulatePlayerTab()
+            populatePlayerTab()
         elseif name == "Scripts" then
-            PopulateScriptsTab()
+            populateScriptsTab()
         else
-            PopulateGeneric()
+            populateGeneric()
         end
     end)
 
     table.insert(tabButtons, tbtn)
 end
 
--- default
-for _, tbtn in ipairs(tabButtons) do
-    if tbtn.Text == "Player" then
-        tbtn:Fire("MouseButton1Click")
-        tbtn.BackgroundColor3 = Color3.fromRGB(90,90,90)
+-- default select player tab
+for _,t in ipairs(tabButtons) do
+    if t.Text == "Player" then
+        t:CaptureFocus()
+        t:MouseButton1Click()
+        t.BackgroundColor3 = Color3.fromRGB(90,90,90)
         break
     end
 end
 
--- Delete key toggle
-UIS.InputBegan:Connect(function(input, processed)
-    if not processed and input.KeyCode == Enum.KeyCode.Delete then
-        MainFrame.Visible = not MainFrame.Visible
-        Log(MainFrame.Visible and "Menu opened" or "Menu closed")
+-- global Stepped/RenderStepped handlers (controlled via flags)
+RunService.Stepped:Connect(function()
+    if noclipActive and player.Character then
+        for _,p in ipairs(player.Character:GetDescendants()) do
+            if p:IsA("BasePart") then
+                p.CanCollide = false
+            end
+        end
     end
 end)
 
--- Final
-Log("BMF UI Loaded")
+RunService.RenderStepped:Connect(function()
+    if flyingActive and player.Character and flyBV and flyBG then
+        local cam = workspace.CurrentCamera
+        if cam then
+            local look = cam.CFrame.LookVector
+            -- tuning speed: 60 feels responsive but not insane
+            flyBV.Velocity = look * 60
+            flyBG.CFrame = cam.CFrame
+        end
+    end
+end)
+
+-- jumping
+UserInputService.JumpRequest:Connect(function()
+    if infiniteJumpActive and player.Character then
+        local hum = player.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+    end
+end)
+
+-- ensure canvas updates when content changes size
+buttonsLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvas)
+
+-- initial canvas update & visible on
+updateCanvas()
+setError("BMF UI Loaded")
+setVisible(true)
