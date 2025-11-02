@@ -99,7 +99,7 @@ local errLabel = new("TextLabel", {
 })
 
 local function setError(text)
-    pcall(function() errLabel.Text = "Logs: " .. tostring(text or "None") end)
+    pcall(function() errLabel.Text = "Error Log: " .. tostring(text or "None") end)
 end
 
 -- divider
@@ -543,4 +543,4 @@ setError("BMF UI Loaded")
 main.Visible = true
 
 -- done
-print("Prison Life - BMF UI loaded!")
+print("Prison Life - BMF UI (final) loaded")
