@@ -5,10 +5,10 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local TeamsService = game:GetService("Teams")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local workspaceRemote = workspace:WaitForChild("Remote")
 
 -- helper to create instances
@@ -288,7 +288,11 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- Tab populators
+-- =============================
+-- TAB POPULATORS
+-- =============================
+
+-- PLAYER TAB
 local function populatePlayerTab()
     clearButtons()
     makeButton("Noclip", buttonsPanel, function() noclipActive = true; setError("Noclip ON") end)
@@ -338,6 +342,7 @@ local function populatePlayerTab()
     updateCanvas()
 end
 
+-- MISC TAB
 local function populateMiscTab()
     clearButtons()
     makeButton("Remove Doors", buttonsPanel, function()
@@ -355,15 +360,20 @@ local function populateMiscTab()
     updateCanvas()
 end
 
+-- CHEATS TAB
 local function populateCheatsTab()
     clearButtons()
+
+    -- ESP
     makeButton("ESP (Players)", buttonsPanel, function()
         setError("ESP Enabled")
+        local espFolder = player:FindFirstChild("ESPFolder") or Instance.new("Folder", player)
+        espFolder.Name = "ESPFolder"
+
         local function espPlayer(p)
             if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
                 -- Name above head
-                local existing = p.Character:FindFirstChild("ESP_Name")
-                if not existing then
+                if not p.Character:FindFirstChild("ESP_Name") then
                     local billboard = Instance.new("BillboardGui")
                     billboard.Name = "ESP_Name"
                     billboard.Adornee = p.Character.HumanoidRootPart
@@ -382,8 +392,9 @@ local function populateCheatsTab()
                 end
                 -- Highlight parts
                 for _,part in ipairs(p.Character:GetDescendants()) do
-                    if part:IsA("BasePart") then
+                    if part:IsA("BasePart") and not part:FindFirstChild("ESP_Box") then
                         local box = Instance.new("SelectionBox")
+                        box.Name = "ESP_Box"
                         box.Adornee = part
                         box.LineThickness = 0.05
                         box.Color3 = p.TeamColor.Color
@@ -393,6 +404,7 @@ local function populateCheatsTab()
                 end
             end
         end
+
         for _,p in ipairs(Players:GetPlayers()) do
             if p ~= player then
                 espPlayer(p)
@@ -400,144 +412,40 @@ local function populateCheatsTab()
             end
         end
     end)
-    makeButton("Escape", buttonsPanel, function()
-        local char = player.Character
-        if char and char:FindFirstChild("HumanoidRootPart") then
-            char.HumanoidRootPart.CFrame = CFrame.new(-932, 94, 2051)
-            setError("Teleporting to Escape point...")
-            wait(3)
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            if hum then hum.Health = 0 end
-        end
-    end)
     updateCanvas()
 end
-makeButton("Anti Punch", buttonsPanel, function()
-    setError("Anti Punch Enabled")
-    
-    local function onHit(otherPart)
-        local character = player.Character
-        if not character or not character:FindFirstChild("HumanoidRootPart") then return end
-        
-        local hitHumanoid = otherPart.Parent:FindFirstChildOfClass("Humanoid")
-        local hitPlayer = Players:GetPlayerFromCharacter(otherPart.Parent)
-        
-        if hitHumanoid and hitPlayer and hitPlayer ~= player then
-            -- Kill the player who punched you
-            hitHumanoid.Health = 0
-            setError("Killed " .. hitPlayer.Name .. " for punching you!")
-        end
-    end
-    
-    -- Connect the touched event for all parts of your character
-    local char = player.Character
-    if char then
-        for _, part in ipairs(char:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.Touched:Connect(onHit)
-            end
-        end
-        -- Optional: connect future parts when character respawns
-        player.CharacterAdded:Connect(function(newChar)
-            for _, part in ipairs(newChar:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.Touched:Connect(onHit)
-                end
-            end
 
-local function populateTeleportsTab()
+-- TELEPORT TAB
+local function populateTeleportTab()
     clearButtons()
     local teleports = {
-        ["Armoury"] = Vector3.new(830, 100, 2239),
-        ["Yard"] = Vector3.new(795, 98, 2470),
-        ["Nexus"] = Vector3.new(912, 100, 2375),
-        ["Cafeteria"] = Vector3.new(903, 100, 2320),
-        ["Cell Block"] = Vector3.new(916, 100, 2447),
-        ["Lobby"] = Vector3.new(704, 100, 2274),
-        ["Garage"] = Vector3.new(616, 98, 2475),
-        ["Tower"] = Vector3.new(823, 126, 2589),
-        ["Roof"] = Vector3.new(822, 119, 2321),
-        ["Sewer"] = Vector3.new(917, 98, 2102),
-        ["Gate"] = Vector3.new(496, 98, 2216),
-        ["Criminal Base"] = Vector3.new(-932, 94, 2051),
-        ["Neutral Spawn"] = Vector3.new(864, 40, 2342),
+        Armoury = Vector3.new(830,100,0),
+        Cafeteria = Vector3.new(200,100,50),
+        Yard = Vector3.new(500,100,400),
     }
     for name,pos in pairs(teleports) do
         makeButton(name, buttonsPanel, function()
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                player.Character.HumanoidRootPart.CFrame = CFrame.new(pos)
-                setError("Teleported to "..name)
-            end
+            local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+            if root then root.CFrame = CFrame.new(pos); setError("Teleported to "..name) end
         end)
     end
     updateCanvas()
 end
 
-local function populateScriptsTab()
-    clearButtons()
-    makeButton("Infinite Yield", buttonsPanel, function()
-        setError("Running Infinite Yield...")
-        local ok, err = pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))() end)
-        if ok then setError("Infinite Yield OK") else setError("InfiniteYield err: "..tostring(err)) end
-    end)
-    makeButton("Dex Explorer", buttonsPanel, function()
-        setError("Running Dex Explorer...")
-        local ok, err = pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/dex.lua"))() end)
-        if ok then setError("Dex OK") else setError("Dex err: "..tostring(err)) end
-    end)
-    makeButton("Chat Bypass", buttonsPanel, function()
-        setError("Running Chat Bypass...")
-        local ok, err = pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/AnnaRoblox/AnnaBypasser/refs/heads/main/AnnaBypasser.lua", true))() end)
-        if ok then setError("Chat Bypass OK") else setError("Chat err: "..tostring(err)) end
-    end)
-    updateCanvas()
+-- TAB BUTTONS
+local tabs = {
+    {Name="Player",Func=populatePlayerTab},
+    {Name="Misc",Func=populateMiscTab},
+    {Name="Cheats",Func=populateCheatsTab},
+    {Name="Teleports",Func=populateTeleportTab},
+}
+
+for i,t in ipairs(tabs) do
+    local btn = makeButton(t.Name, tabsPanel, t.Func)
+    btn.BackgroundColor3 = Color3.fromRGB(55,55,55)
 end
 
-local function populateGeneric()
-    clearButtons()
-    for i=1,6 do makeButton("WIP!", buttonsPanel, function() end) end
-    updateCanvas()
-end
+-- Default open player tab
+populatePlayerTab()
 
--- Create tab buttons
-local tabNames = {"Player","Teleports","Cheats","Misc","Scripts"} -- Removed Weapons
-local tabButtons = {}
-for _,name in ipairs(tabNames) do
-    local tbtn = new("TextButton", {
-        Parent = tabsPanel,
-        Size = UDim2.new(1,-24,0,40),
-        BackgroundColor3 = Color3.fromRGB(55,55,55),
-        Text = name,
-        Font = Enum.Font.Gotham,
-        TextSize = 15,
-        TextColor3 = Color3.fromRGB(255,255,255),
-    }, tabsPanel)
-    new("UICorner", {CornerRadius = UDim.new(0,6)}, tbtn)
-    tbtn.MouseButton1Click:Connect(function()
-        for _,c in ipairs(tabsPanel:GetChildren()) do if c:IsA("TextButton") then c.BackgroundColor3 = Color3.fromRGB(55,55,55) end end
-        tbtn.BackgroundColor3 = Color3.fromRGB(92,92,92)
-        if name == "Player" then populatePlayerTab()
-        elseif name == "Misc" then populateMiscTab()
-        elseif name == "Teleports" then populateTeleportsTab()
-        elseif name == "Cheats" then populateCheatsTab()
-        elseif name == "Scripts" then populateScriptsTab()
-        else populateGeneric() end
-    end)
-    table.insert(tabButtons, tbtn)
-end
-
--- Default open Player tab
-for _,tbtn in ipairs(tabButtons) do
-    if tbtn.Text == "Player" then
-        tbtn:CaptureFocus()
-        tbtn:MouseButton1Click()
-        tbtn.BackgroundColor3 = Color3.fromRGB(92,92,92)
-        break
-    end
-end
-
--- Finalize
-updateCanvas()
-setError("BMF UI Loaded!")
-main.Visible = true
-print("BMF UI loaded!")
+setError("BMF UI Loaded")
