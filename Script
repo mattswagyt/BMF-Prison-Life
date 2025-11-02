@@ -1,116 +1,126 @@
--- Roblox Lua Script for "Prison Life - BMF"
+-- Roblox Lua Script: Prison Life - BMF (Clean UI Overhaul)
+-- Features: Draggable, Tabs, Scrollable Buttons, Error Logging, Toggle with Delete key
 
 -- Services
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
-local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local PlayerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+local RunService = game:GetService("RunService")
 
--- Create UI Elements
+-- ScreenGui
 local ScreenGui = Instance.new("ScreenGui")
-local MainFrame = Instance.new("Frame")
-local Title = Instance.new("TextLabel")
-local ErrorLog = Instance.new("TextLabel")
-local TabsFrame = Instance.new("Frame")
-local ButtonsFrame = Instance.new("Frame")
-
--- ScreenGui setup
 ScreenGui.Parent = PlayerGui
-ScreenGui.ResetOnSpawn = false
 ScreenGui.Name = "PrisonLifeBMFUI"
+ScreenGui.ResetOnSpawn = false
 
--- MainFrame setup
-MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-MainFrame.Size = UDim2.new(0, 400, 0, 450)
-MainFrame.Position = UDim2.new(0.5, -200, 0.5, -225)
+-- Main Frame
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 450, 0, 500)
+MainFrame.Position = UDim2.new(0.5, -225, 0.5, -250)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
-MainFrame.Visible = true
+MainFrame.Parent = ScreenGui
 
--- Title setup
-Title.Parent = MainFrame
+-- UI Gradient for slight style
+local Gradient = Instance.new("UIGradient")
+Gradient.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(35,35,35)), ColorSequenceKeypoint.new(1, Color3.fromRGB(20,20,20))})
+Gradient.Parent = MainFrame
+
+-- Title
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 50)
+Title.Position = UDim2.new(0, 0, 0, 0)
+Title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 Title.Text = "Prison Life - BMF"
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 20
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 24
+Title.Parent = MainFrame
 
--- ErrorLog setup
-ErrorLog.Parent = MainFrame
-ErrorLog.Text = "Error Log: None"
+-- Error Log
+local ErrorLog = Instance.new("TextLabel")
 ErrorLog.Size = UDim2.new(1, -20, 0, 30)
-ErrorLog.Position = UDim2.new(0, 10, 0, 40)
+ErrorLog.Position = UDim2.new(0, 10, 0, 50)
 ErrorLog.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+ErrorLog.Text = "Error Log: None"
 ErrorLog.TextColor3 = Color3.fromRGB(255, 85, 85)
-ErrorLog.Font = Enum.Font.SourceSans
+ErrorLog.Font = Enum.Font.Gotham
 ErrorLog.TextSize = 16
 ErrorLog.TextWrapped = true
 ErrorLog.TextYAlignment = Enum.TextYAlignment.Top
+ErrorLog.Parent = MainFrame
 
--- TabsFrame setup
-TabsFrame.Parent = MainFrame
-TabsFrame.Size = UDim2.new(0, 120, 1, -80)
-TabsFrame.Position = UDim2.new(0, 0, 0, 80)
+-- Tabs Container
+local TabsFrame = Instance.new("Frame")
+TabsFrame.Size = UDim2.new(0, 140, 1, -90)
+TabsFrame.Position = UDim2.new(0, 0, 0, 90)
 TabsFrame.BackgroundTransparency = 1
+TabsFrame.Parent = MainFrame
 
--- ButtonsFrame setup
-ButtonsFrame.Parent = MainFrame
-ButtonsFrame.Size = UDim2.new(1, -120, 1, -80)
-ButtonsFrame.Position = UDim2.new(0, 120, 0, 80)
+-- Buttons Container (scrollable)
+local ButtonsFrame = Instance.new("ScrollingFrame")
+ButtonsFrame.Size = UDim2.new(1, -140, 1, -90)
+ButtonsFrame.Position = UDim2.new(0, 140, 0, 90)
 ButtonsFrame.BackgroundTransparency = 1
+ButtonsFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+ButtonsFrame.ScrollBarThickness = 6
+ButtonsFrame.Parent = MainFrame
 
--- Tabs Names
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Padding = UDim.new(0, 5)
+UIListLayout.Parent = ButtonsFrame
+
+-- Tabs
 local tabs = {"Player", "Teams", "Teleports", "Weapons", "Cheats", "Misc", "Scripts"}
-
--- Create tab buttons
 local tabButtons = {}
+local activeTabColor = Color3.fromRGB(80, 80, 80)
+local inactiveTabColor = Color3.fromRGB(60, 60, 60)
+
 for i, tabName in ipairs(tabs) do
-    local button = Instance.new("TextButton")
-    button.Parent = TabsFrame
-    button.Size = UDim2.new(1, -10, 0, 40)
-    button.Position = UDim2.new(0, 5, 0, (i-1)*45)
-    button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.Font = Enum.Font.SourceSans
-    button.TextSize = 18
-    button.Text = tabName
-    tabButtons[tabName] = button
-end
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -10, 0, 40)
+    btn.Position = UDim2.new(0, 5, 0, (i-1)*50)
+    btn.BackgroundColor3 = inactiveTabColor
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 18
+    btn.Text = tabName
+    btn.Parent = TabsFrame
+    tabButtons[tabName] = btn
 
--- Function to clear ButtonsFrame
-local function clearButtons()
-    for _, child in ipairs(ButtonsFrame:GetChildren()) do
-        if child:IsA("TextButton") then
-            child:Destroy()
+    btn.MouseButton1Click:Connect(function()
+        -- Highlight active tab
+        for _, tbtn in pairs(tabButtons) do
+            tbtn.BackgroundColor3 = inactiveTabColor
         end
-    end
+        btn.BackgroundColor3 = activeTabColor
+
+        -- Clear and add placeholder buttons
+        for _, child in ipairs(ButtonsFrame:GetChildren()) do
+            if child:IsA("TextButton") then child:Destroy() end
+        end
+
+        for j = 1, 6 do
+            local wipButton = Instance.new("TextButton")
+            wipButton.Size = UDim2.new(1, -20, 0, 35)
+            wipButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+            wipButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+            wipButton.Font = Enum.Font.Gotham
+            wipButton.TextSize = 16
+            wipButton.Text = "WIP!"
+            wipButton.Parent = ButtonsFrame
+        end
+
+        -- Update scrollable canvas size
+        local totalSize = UIListLayout.AbsoluteContentSize.Y
+        ButtonsFrame.CanvasSize = UDim2.new(0, 0, 0, totalSize + 10)
+    end)
 end
 
--- Function to create placeholder buttons
-local function createWIPButtons()
-    clearButtons()
-    for i = 1, 5 do
-        local wipButton = Instance.new("TextButton")
-        wipButton.Parent = ButtonsFrame
-        wipButton.Size = UDim2.new(0, 200, 0, 35)
-        wipButton.Position = UDim2.new(0, 10, 0, (i-1)*40)
-        wipButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-        wipButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-        wipButton.Font = Enum.Font.SourceSans
-        wipButton.TextSize = 16
-        wipButton.Text = "WIP!"
-    end
-end
-
--- Connect tab buttons to WIP buttons
-for _, button in pairs(tabButtons) do
-    button.MouseButton1Click:Connect(createWIPButtons)
-end
-
--- Open default tab
-createWIPButtons()
+-- Activate default tab
+tabButtons["Player"].MouseButton1Click:Fire()
 
 -- Toggle UI visibility with Delete key
 UIS.InputBegan:Connect(function(input, processed)
@@ -119,4 +129,5 @@ UIS.InputBegan:Connect(function(input, processed)
     end
 end)
 
-print("Prison Life - BMF UI Loaded Successfully")
+-- Smooth UI loading message
+print("Prison Life - BMF Clean UI Loaded Successfully")
