@@ -1,64 +1,65 @@
--- Prison Life by BMF & Chat GPT
+-- Roblox Lua Script for "Prison Life - BMF"
 
 -- Services
 local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Create ScreenGui
+-- Create UI Elements
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "PrisonLifeBMF"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = PlayerGui
-
--- Main Frame
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 500, 0, 400)
-MainFrame.Position = UDim2.new(0.5, -250, 0.5, -200)
-MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-MainFrame.BorderSizePixel = 0
-MainFrame.Parent = ScreenGui
-
--- UI Gradient
-local UIGradient = Instance.new("UIGradient")
-UIGradient.Color = ColorSequence.new(Color3.fromRGB(40,40,40), Color3.fromRGB(20,20,20))
-UIGradient.Parent = MainFrame
-
--- Title
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 50)
-Title.BackgroundTransparency = 1
-Title.Text = "Prison Life - BMF"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 24
-Title.Parent = MainFrame
-
--- Error Log
 local ErrorLog = Instance.new("TextLabel")
-ErrorLog.Size = UDim2.new(1, -20, 0, 30)
-ErrorLog.Position = UDim2.new(0, 10, 0, 50)
-ErrorLog.BackgroundTransparency = 1
-ErrorLog.Text = "Error Log: None"
-ErrorLog.TextColor3 = Color3.fromRGB(255, 100, 100)
-ErrorLog.Font = Enum.Font.Gotham
-ErrorLog.TextSize = 16
-ErrorLog.TextXAlignment = Enum.TextXAlignment.Left
-ErrorLog.Parent = MainFrame
-
--- Tabs Container
 local TabsFrame = Instance.new("Frame")
-TabsFrame.Size = UDim2.new(0, 120, 1, -90)
-TabsFrame.Position = UDim2.new(0, 0, 0, 90)
-TabsFrame.BackgroundTransparency = 1
-TabsFrame.Parent = MainFrame
-
--- Buttons Container
 local ButtonsFrame = Instance.new("Frame")
-ButtonsFrame.Size = UDim2.new(1, -120, 1, -90)
-ButtonsFrame.Position = UDim2.new(0, 120, 0, 90)
-ButtonsFrame.BackgroundTransparency = 1
+
+-- ScreenGui setup
+ScreenGui.Parent = PlayerGui
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Name = "PrisonLifeBMFUI"
+
+-- MainFrame setup
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.Size = UDim2.new(0, 400, 0, 450)
+MainFrame.Position = UDim2.new(0.5, -200, 0.5, -225)
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Visible = true
+
+-- Title setup
+Title.Parent = MainFrame
+Title.Text = "Prison Life - BMF"
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.SourceSansBold
+Title.TextSize = 20
+
+-- ErrorLog setup
+ErrorLog.Parent = MainFrame
+ErrorLog.Text = "Error Log: None"
+ErrorLog.Size = UDim2.new(1, -20, 0, 30)
+ErrorLog.Position = UDim2.new(0, 10, 0, 40)
+ErrorLog.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+ErrorLog.TextColor3 = Color3.fromRGB(255, 85, 85)
+ErrorLog.Font = Enum.Font.SourceSans
+ErrorLog.TextSize = 16
+ErrorLog.TextWrapped = true
+ErrorLog.TextYAlignment = Enum.TextYAlignment.Top
+
+-- TabsFrame setup
+TabsFrame.Parent = MainFrame
+TabsFrame.Size = UDim2.new(0, 120, 1, -80)
+TabsFrame.Position = UDim2.new(0, 0, 0, 80)
+TabsFrame.BackgroundTransparency = 1
+
+-- ButtonsFrame setup
 ButtonsFrame.Parent = MainFrame
+ButtonsFrame.Size = UDim2.new(1, -120, 1, -80)
+ButtonsFrame.Position = UDim2.new(0, 120, 0, 80)
+ButtonsFrame.BackgroundTransparency = 1
 
 -- Tabs Names
 local tabs = {"Player", "Teams", "Teleports", "Weapons", "Cheats", "Misc", "Scripts"}
@@ -67,19 +68,18 @@ local tabs = {"Player", "Teams", "Teleports", "Weapons", "Cheats", "Misc", "Scri
 local tabButtons = {}
 for i, tabName in ipairs(tabs) do
     local button = Instance.new("TextButton")
+    button.Parent = TabsFrame
     button.Size = UDim2.new(1, -10, 0, 40)
     button.Position = UDim2.new(0, 5, 0, (i-1)*45)
     button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
     button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.Font = Enum.Font.Gotham
+    button.Font = Enum.Font.SourceSans
     button.TextSize = 18
     button.Text = tabName
-    button.Parent = TabsFrame
-
     tabButtons[tabName] = button
 end
 
--- Function to clear buttons in ButtonsFrame
+-- Function to clear ButtonsFrame
 local function clearButtons()
     for _, child in ipairs(ButtonsFrame:GetChildren()) do
         if child:IsA("TextButton") then
@@ -88,28 +88,35 @@ local function clearButtons()
     end
 end
 
--- Function to create WIP buttons
-local function createWIPButtons(tabName)
+-- Function to create placeholder buttons
+local function createWIPButtons()
     clearButtons()
     for i = 1, 5 do
         local wipButton = Instance.new("TextButton")
-        wipButton.Size = UDim2.new(0, 150, 0, 35)
+        wipButton.Parent = ButtonsFrame
+        wipButton.Size = UDim2.new(0, 200, 0, 35)
         wipButton.Position = UDim2.new(0, 10, 0, (i-1)*40)
         wipButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
         wipButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-        wipButton.Font = Enum.Font.Gotham
+        wipButton.Font = Enum.Font.SourceSans
         wipButton.TextSize = 16
         wipButton.Text = "WIP!"
-        wipButton.Parent = ButtonsFrame
     end
 end
 
--- Connect tab buttons
-for tabName, button in pairs(tabButtons) do
-    button.MouseButton1Click:Connect(function()
-        createWIPButtons(tabName)
-    end)
+-- Connect tab buttons to WIP buttons
+for _, button in pairs(tabButtons) do
+    button.MouseButton1Click:Connect(createWIPButtons)
 end
 
 -- Open default tab
-createWIPButtons("Player")
+createWIPButtons()
+
+-- Toggle UI visibility with Delete key
+UIS.InputBegan:Connect(function(input, processed)
+    if not processed and input.KeyCode == Enum.KeyCode.Delete then
+        MainFrame.Visible = not MainFrame.Visible
+    end
+end)
+
+print("Prison Life - BMF UI Loaded Successfully")
