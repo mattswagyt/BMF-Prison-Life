@@ -64,7 +64,7 @@ local toggleBtn = new("TextButton", {
 }, titleBar)
 new("UICorner", {CornerRadius = UDim.new(0,6)}, toggleBtn)
 
--- Logging frame (single-line)
+-- Logging frame
 local errFrame = new("Frame", {
     Parent = main,
     Size = UDim2.new(1,-24,0,30),
@@ -217,24 +217,20 @@ toggleBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Toggle UI with Delete
+-- Toggle UI with Delete (fixed position bug)
 local visible = true
+local togglePosition = main.Position
 local function setVisible(v)
     visible = v
-    if v then
-        main.Visible = true
-        main.Position = UDim2.new(0.5, -260, 0.5, -260 + 12)
-        TweenService:Create(main, TweenInfo.new(0.18, Enum.EasingStyle.Quad), {Position = UDim2.new(0.5, -260, 0.5, -260)}):Play()
-    else
-        TweenService:Create(main, TweenInfo.new(0.12, Enum.EasingStyle.Quad), {Position = UDim2.new(0.5, -260, 0.5, -260 + 12)}):Play()
-        spawn(function() wait(0.14) main.Visible = false end)
-    end
+    main.Visible = v
+    main.Position = togglePosition
+    setError(v and "Menu opened" or "Menu closed")
 end
 
 ContextActionService:BindAction("BMF_TOGGLE_UI", function(_, state)
     if state == Enum.UserInputState.Begin then
+        togglePosition = main.Position
         setVisible(not visible)
-        setError(visible and "Menu opened" or "Menu closed")
     end
     return Enum.ContextActionResult.Sink
 end, false, Enum.KeyCode.Delete)
@@ -257,15 +253,11 @@ UIS.InputEnded:Connect(function(input)
 end)
 
 local function flyDirectionFromKeys()
-    local cam = workspace.CurrentCamera
-    if not cam then return Vector3.new() end
-    local forward = cam.CFrame.LookVector
-    local right = cam.CFrame.RightVector
     local dir = Vector3.new()
-    if moveKeys.W then dir = dir + Vector3.new(forward.X, 0, forward.Z) end
-    if moveKeys.S then dir = dir - Vector3.new(forward.X, 0, forward.Z) end
-    if moveKeys.D then dir = dir + Vector3.new(right.X, 0, right.Z) end
-    if moveKeys.A then dir = dir - Vector3.new(right.X, 0, right.Z) end
+    if moveKeys.W then dir = dir + Vector3.new(0,0,-1) end
+    if moveKeys.S then dir = dir + Vector3.new(0,0,1) end
+    if moveKeys.A then dir = dir + Vector3.new(-1,0,0) end
+    if moveKeys.D then dir = dir + Vector3.new(1,0,0) end
     if dir.Magnitude > 0 then return dir.Unit end
     return Vector3.new()
 end
@@ -282,14 +274,9 @@ end)
 RunService.RenderStepped:Connect(function()
     if flyingActive and player.Character and flyBV and flyBG then
         local dir = flyDirectionFromKeys()
-        if dir.Magnitude > 0 then
-            flyBV.Velocity = Vector3.new(dir.X, 0, dir.Z) * baseFlySpeed
-        else
-            flyBV.Velocity = Vector3.new(0, 0, 0)
-        end
+        flyBV.Velocity = dir * baseFlySpeed
         local root = player.Character:GetPrimaryPartCFrame()
-        local cam = workspace.CurrentCamera
-        if cam then flyBG.CFrame = CFrame.new(root.p, root.p + cam.CFrame.LookVector) end
+        flyBG.CFrame = CFrame.new(root.p, root.p + workspace.CurrentCamera.CFrame.LookVector)
     end
 end)
 
@@ -305,7 +292,15 @@ end)
 local function populatePlayerTab()
     clearButtons()
     makeButton("Noclip", buttonsPanel, function() noclipActive = true; setError("Noclip ON") end)
-    makeButton("Unclip", buttonsPanel, function() noclipActive = false; if player.Character then for _,p in ipairs(player.Character:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = true end end end; setError("Noclip OFF") end)
+    makeButton("Unclip", buttonsPanel, function()
+        noclipActive = false
+        if player.Character then
+            for _,p in ipairs(player.Character:GetDescendants()) do
+                if p:IsA("BasePart") then p.CanCollide = true end
+            end
+        end
+        setError("Noclip OFF")
+    end)
     makeButton("Fly", buttonsPanel, function()
         if flyingActive then setError("Already flying"); return end
         local char = player.Character
@@ -317,12 +312,26 @@ local function populatePlayerTab()
         flyBG = Instance.new("BodyGyro", root); flyBG.MaxTorque = Vector3.new(1e6,1e6,1e6)
         setError("Fly ON (WASD to move, Shift to boost)")
     end)
-    makeButton("Unfly", buttonsPanel, function() flyingActive = false; if flyBV then flyBV:Destroy(); flyBV=nil end; if flyBG then flyBG:Destroy(); flyBG=nil end; setError("Fly OFF") end)
-    makeButton("Infinite Jump (toggle)", buttonsPanel, function() infiniteJumpActive = not infiniteJumpActive; setError("Infinite Jump "..(infiniteJumpActive and "ON" or "OFF")) end)
-    makeButton("Speed Hack (50)", buttonsPanel, function() local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid"); if hum then hum.WalkSpeed = 50; setError("WalkSpeed = 50") else setError("Humanoid missing") end end)
+    makeButton("Unfly", buttonsPanel, function()
+        flyingActive = false
+        if flyBV then flyBV:Destroy(); flyBV=nil end
+        if flyBG then flyBG:Destroy(); flyBG=nil end
+        setError("Fly OFF")
+    end)
+    makeButton("Infinite Jump (toggle)", buttonsPanel, function()
+        infiniteJumpActive = not infiniteJumpActive
+        setError("Infinite Jump "..(infiniteJumpActive and "ON" or "OFF"))
+    end)
+    makeButton("Speed Hack (50)", buttonsPanel, function()
+        local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum.WalkSpeed = 50; setError("WalkSpeed = 50") else setError("Humanoid missing") end
+    end)
     makeButton("Reset Character", buttonsPanel, function()
         local char = player.Character
-        if char then local hum = char:FindFirstChildOfClass("Humanoid") if hum and hum.Health>0 then hum.Health = 0; setError("Character reset") return end end
+        if char then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum and hum.Health>0 then hum.Health = 0; setError("Character reset") return end
+        end
         local ok, err = pcall(function() player:LoadCharacter() end)
         if ok then setError("Character loaded") else setError("Reset error: "..tostring(err)) end
     end)
@@ -348,37 +357,47 @@ end
 
 local function populateCheatsTab()
     clearButtons()
-    makeButton("ESP (Inmates, Guards, Criminals)", buttonsPanel, function()
+    makeButton("ESP (Players)", buttonsPanel, function()
         setError("ESP Enabled")
         local function espPlayer(p)
             if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                -- Name above head
+                local existing = p.Character:FindFirstChild("ESP_Name")
+                if not existing then
+                    local billboard = Instance.new("BillboardGui")
+                    billboard.Name = "ESP_Name"
+                    billboard.Adornee = p.Character.HumanoidRootPart
+                    billboard.Size = UDim2.new(0,100,0,40)
+                    billboard.StudsOffset = Vector3.new(0,3,0)
+                    billboard.AlwaysOnTop = true
+                    local label = Instance.new("TextLabel", billboard)
+                    label.Size = UDim2.new(1,0,1,0)
+                    label.BackgroundTransparency = 1
+                    label.Font = Enum.Font.GothamBold
+                    label.TextSize = 14
+                    label.TextColor3 = p.TeamColor.Color
+                    label.Text = p.Name
+                    label.TextStrokeTransparency = 0
+                    billboard.Parent = p.Character
+                end
+                -- Highlight parts
                 for _,part in ipairs(p.Character:GetDescendants()) do
                     if part:IsA("BasePart") then
-                        local outline = Instance.new("SelectionBox")
-                        outline.Adornee = part
-                        outline.LineThickness = 0.05
-                        outline.SurfaceColor3 = p.TeamColor.Color
-                        outline.Color3 = p.TeamColor.Color
-                        outline.Parent = part
+                        local box = Instance.new("SelectionBox")
+                        box.Adornee = part
+                        box.LineThickness = 0.05
+                        box.Color3 = p.TeamColor.Color
+                        box.SurfaceColor3 = p.TeamColor.Color
+                        box.Parent = part
                     end
                 end
-                -- Tracer line
-                local hrp = p.Character:FindFirstChild("HumanoidRootPart")
-                local tracer = Instance.new("Beam")
-                local attachment0 = Instance.new("Attachment", player.Character and player.Character:FindFirstChild("HumanoidRootPart") or nil)
-                local attachment1 = Instance.new("Attachment", hrp)
-                tracer.Attachment0 = attachment0
-                tracer.Attachment1 = attachment1
-                tracer.FaceCamera = true
-                tracer.Color = ColorSequence.new(p.TeamColor.Color)
-                tracer.Width0 = 0.05
-                tracer.Width1 = 0.05
-                tracer.Parent = workspace
             end
         end
         for _,p in ipairs(Players:GetPlayers()) do
-            if p ~= player then espPlayer(p) end
-            p.CharacterAdded:Connect(function() espPlayer(p) end)
+            if p ~= player then
+                espPlayer(p)
+                p.CharacterAdded:Connect(function() espPlayer(p) end)
+            end
         end
     end)
     makeButton("Escape", buttonsPanel, function()
@@ -449,7 +468,7 @@ local function populateGeneric()
 end
 
 -- Create tab buttons
-local tabNames = {"Player","Teleports","Cheats","Misc","Scripts","Weapons"}
+local tabNames = {"Player","Teleports","Cheats","Misc","Scripts"} -- Removed Weapons
 local tabButtons = {}
 for _,name in ipairs(tabNames) do
     local tbtn = new("TextButton", {
