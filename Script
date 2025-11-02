@@ -1,10 +1,26 @@
--- Roblox Lua Script: Prison Life - BMF (Perfectly Repositioned UI)
--- Clean, sleek, professional layout
+-- Prison Life (By BMF & Chat GPT)
 
 -- Services
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 local PlayerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+
+-- Helpers
+local function safeExec(fn)
+    local ok, err = pcall(fn)
+    if not ok then
+        return false, tostring(err)
+    end
+    return true
+end
+
+local function updateErrorLog(text)
+    pcall(function()
+        ErrorLog.Text = "Error Log: " .. tostring(text or "None")
+    end)
+end
 
 -- ScreenGui
 local ScreenGui = Instance.new("ScreenGui")
@@ -47,6 +63,14 @@ ErrorLog.TextXAlignment = Enum.TextXAlignment.Left
 ErrorLog.TextYAlignment = Enum.TextYAlignment.Center
 ErrorLog.Parent = MainFrame
 
+-- Divider line
+local Divider = Instance.new("Frame")
+Divider.Size = UDim2.new(0, 2, 1, -100)
+Divider.Position = UDim2.new(0, 145, 0, 95)
+Divider.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+Divider.BorderSizePixel = 0
+Divider.Parent = MainFrame
+
 -- Tabs Frame (left)
 local TabsFrame = Instance.new("Frame")
 TabsFrame.Size = UDim2.new(0, 140, 1, -100)
@@ -61,10 +85,12 @@ ButtonsFrame.Position = UDim2.new(0, 150, 0, 95)
 ButtonsFrame.BackgroundTransparency = 1
 ButtonsFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 ButtonsFrame.ScrollBarThickness = 6
+ButtonsFrame.ScrollBarImageColor3 = Color3.fromRGB(100,100,100)
 ButtonsFrame.Parent = MainFrame
 
 local UIListLayout = Instance.new("UIListLayout")
 UIListLayout.Padding = UDim.new(0, 8)
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 UIListLayout.Parent = ButtonsFrame
 
 -- Tabs
@@ -73,11 +99,96 @@ local tabButtons = {}
 local activeTabColor = Color3.fromRGB(90, 90, 90)
 local inactiveTabColor = Color3.fromRGB(60, 60, 60)
 
+-- Tween settings
+local tweenInfo = TweenInfo.new(0.28, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+-- Utility: create a styled button
+local function createStyledButton(text, parent)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -20, 0, 40)
+    btn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    btn.BorderSizePixel = 0
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 16
+    btn.Text = text
+    btn.AutoButtonColor = true
+    btn.Parent = parent
+    return btn
+end
+
+-- Function to clear ButtonsFrame with fade out
+local function clearButtonsWithFade()
+    for _, child in ipairs(ButtonsFrame:GetChildren()) do
+        if child:IsA("TextButton") then
+            local tween = TweenService:Create(child, tweenInfo, {BackgroundTransparency = 1, TextTransparency = 1})
+            tween:Play()
+            tween.Completed:Wait()
+            if child and child.Parent then
+                child:Destroy()
+            end
+        end
+    end
+end
+
+-- Function to add placeholders (used for non-scripts tabs)
+local function addPlaceholders(count)
+    for i = 1, count do
+        local b = createStyledButton("WIP!", ButtonsFrame)
+        b.BackgroundTransparency = 1
+        b.TextTransparency = 1
+        TweenService:Create(b, tweenInfo, {BackgroundTransparency = 0, TextTransparency = 0}):Play()
+    end
+    RunService.Heartbeat:Wait()
+    ButtonsFrame.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + 12)
+end
+
+-- Predefine script callbacks
+local scriptActions = {
+    ["Infinite Yield"] = function()
+        updateErrorLog("Running Infinite Yield...")
+        local ok, err = pcall(function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+        end)
+        if not ok then
+            updateErrorLog("Infinite Yield error: "..tostring(err))
+        else
+            updateErrorLog("Infinite Yield executed.")
+        end
+    end,
+
+    ["Dex Explorer"] = function()
+        updateErrorLog("Running Dex Explorer...")
+        local ok, err = pcall(function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/dex.lua"))()
+        end)
+        if not ok then
+            updateErrorLog("Dex Explorer error: "..tostring(err))
+        else
+            updateErrorLog("Dex Explorer executed.")
+        end
+    end,
+
+    ["Chat Bypass"] = function()
+        updateErrorLog("Running Chat Bypass...")
+        local ok, err = pcall(function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/AnnaRoblox/AnnaBypasser/refs/heads/main/AnnaBypasser.lua", true))()
+        end)
+        if not ok then
+            updateErrorLog("Chat Bypass error: "..tostring(err))
+        else
+            updateErrorLog("Chat Bypass executed.")
+        end
+    end,
+}
+
+-- Create tabs and behavior
 for i, tabName in ipairs(tabs) do
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, -20, 0, 40)
     btn.Position = UDim2.new(0, 10, 0, (i-1)*55)
     btn.BackgroundColor3 = inactiveTabColor
+    btn.BorderSizePixel = 0
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Font = Enum.Font.Gotham
     btn.TextSize = 18
@@ -86,42 +197,74 @@ for i, tabName in ipairs(tabs) do
     tabButtons[tabName] = btn
 
     btn.MouseButton1Click:Connect(function()
-        -- Highlight active tab
+        -- highlight
         for _, tbtn in pairs(tabButtons) do
             tbtn.BackgroundColor3 = inactiveTabColor
         end
         btn.BackgroundColor3 = activeTabColor
 
-        -- Clear buttons
-        for _, child in ipairs(ButtonsFrame:GetChildren()) do
-            if child:IsA("TextButton") then child:Destroy() end
+        -- clear old
+        clearButtonsWithFade()
+
+        -- populate based on tab
+        if tabName == "Scripts" then
+            -- Add the three requested script buttons
+            local names = {"Infinite Yield", "Dex Explorer", "Chat Bypass"}
+            for _, name in ipairs(names) do
+                local sBtn = createStyledButton(name, ButtonsFrame)
+                sBtn.BackgroundTransparency = 1
+                sBtn.TextTransparency = 1
+                -- fade in
+                TweenService:Create(sBtn, tweenInfo, {BackgroundTransparency = 0, TextTransparency = 0}):Play()
+
+                -- on click execute safely and update error log
+                sBtn.MouseButton1Click:Connect(function()
+                    -- visual pressed feedback
+                    local pressedTween = TweenService:Create(sBtn, TweenInfo.new(0.08, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {BackgroundTransparency = 0.6})
+                    pressedTween:Play()
+                    pressedTween.Completed:Wait()
+                    TweenService:Create(sBtn, TweenInfo.new(0.08, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {BackgroundTransparency = 0}):Play()
+
+                    -- execute the script
+                    local action = scriptActions[name]
+                    if action then
+                        -- run in safe pcall wrapper
+                        local ok, err = pcall(action)
+                        if not ok and err then
+                            updateErrorLog("Execution error: "..tostring(err))
+                        end
+                    else
+                        updateErrorLog("No action found for "..name)
+                    end
+                end)
+            end
+        else
+            -- generic placeholders for other tabs
+            addPlaceholders(6)
         end
 
-        -- Add placeholder WIP buttons
-        for j = 1, 7 do
-            local wipButton = Instance.new("TextButton")
-            wipButton.Size = UDim2.new(1, -20, 0, 40)
-            wipButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-            wipButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-            wipButton.Font = Enum.Font.Gotham
-            wipButton.TextSize = 16
-            wipButton.Text = "WIP!"
-            wipButton.Parent = ButtonsFrame
-        end
-
-        -- Adjust scroll canvas size
-        ButtonsFrame.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + 10)
+        -- update canvas size after a short delay so layout finishes
+        RunService.Heartbeat:Wait()
+        ButtonsFrame.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + 12)
     end)
 end
 
--- Activate default tab
-tabButtons["Player"].MouseButton1Click:Fire()
+-- Activate default tab (Player)
+if tabButtons["Player"] then
+    tabButtons["Player"]:MouseButton1Click()
+end
 
--- Toggle UI visibility with Delete key
+-- Toggle UI visibility with Delete key (and minor visual feedback)
 UIS.InputBegan:Connect(function(input, processed)
     if not processed and input.KeyCode == Enum.KeyCode.Delete then
         MainFrame.Visible = not MainFrame.Visible
+        if MainFrame.Visible then
+            updateErrorLog("Menu opened")
+        else
+            updateErrorLog("Menu closed")
+        end
     end
 end)
 
-print("Prison Life - BMF Perfectly Repositioned UI Loaded")
+-- Final print
+print("Prison Life - BMF Enhanced UI + Scripts Loaded")
