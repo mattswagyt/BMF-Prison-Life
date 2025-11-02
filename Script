@@ -412,6 +412,38 @@ local function populateCheatsTab()
     end)
     updateCanvas()
 end
+makeButton("Anti Punch", buttonsPanel, function()
+    setError("Anti Punch Enabled")
+    
+    local function onHit(otherPart)
+        local character = player.Character
+        if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+        
+        local hitHumanoid = otherPart.Parent:FindFirstChildOfClass("Humanoid")
+        local hitPlayer = Players:GetPlayerFromCharacter(otherPart.Parent)
+        
+        if hitHumanoid and hitPlayer and hitPlayer ~= player then
+            -- Kill the player who punched you
+            hitHumanoid.Health = 0
+            setError("Killed " .. hitPlayer.Name .. " for punching you!")
+        end
+    end
+    
+    -- Connect the touched event for all parts of your character
+    local char = player.Character
+    if char then
+        for _, part in ipairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.Touched:Connect(onHit)
+            end
+        end
+        -- Optional: connect future parts when character respawns
+        player.CharacterAdded:Connect(function(newChar)
+            for _, part in ipairs(newChar:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.Touched:Connect(onHit)
+                end
+            end
 
 local function populateTeleportsTab()
     clearButtons()
