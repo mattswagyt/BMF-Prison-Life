@@ -363,17 +363,14 @@ end
 -- CHEATS TAB
 local function populateCheatsTab()
     clearButtons()
-
-    -- ESP
+    -- Regular cheat buttons
     makeButton("ESP (Players)", buttonsPanel, function()
         setError("ESP Enabled")
-        local espFolder = player:FindFirstChild("ESPFolder") or Instance.new("Folder", player)
-        espFolder.Name = "ESPFolder"
-
         local function espPlayer(p)
             if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
                 -- Name above head
-                if not p.Character:FindFirstChild("ESP_Name") then
+                local existing = p.Character:FindFirstChild("ESP_Name")
+                if not existing then
                     local billboard = Instance.new("BillboardGui")
                     billboard.Name = "ESP_Name"
                     billboard.Adornee = p.Character.HumanoidRootPart
@@ -392,9 +389,8 @@ local function populateCheatsTab()
                 end
                 -- Highlight parts
                 for _,part in ipairs(p.Character:GetDescendants()) do
-                    if part:IsA("BasePart") and not part:FindFirstChild("ESP_Box") then
+                    if part:IsA("BasePart") then
                         local box = Instance.new("SelectionBox")
-                        box.Name = "ESP_Box"
                         box.Adornee = part
                         box.LineThickness = 0.05
                         box.Color3 = p.TeamColor.Color
@@ -404,7 +400,6 @@ local function populateCheatsTab()
                 end
             end
         end
-
         for _,p in ipairs(Players:GetPlayers()) do
             if p ~= player then
                 espPlayer(p)
@@ -412,6 +407,35 @@ local function populateCheatsTab()
             end
         end
     end)
+
+    makeButton("Escape", buttonsPanel, function()
+        local char = player.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            char.HumanoidRootPart.CFrame = CFrame.new(-932, 94, 2051)
+            setError("Teleporting to Escape point...")
+            wait(3)
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then hum.Health = 0 end
+        end
+    end)
+
+    -- Create Anti buttons container
+    local antiFrame = new("Frame", {
+        Parent = buttonsPanel,
+        Size = UDim2.new(1,0,0,0), -- Dynamic height based on layout
+        BackgroundTransparency = 1,
+    }, buttonsPanel)
+    local antiLayout = new("UIListLayout", {Padding = UDim.new(0,4), SortOrder = Enum.SortOrder.LayoutOrder}, antiFrame)
+    new("UIPadding", {PaddingTop = UDim.new(0,4), PaddingBottom = UDim.new(0,4)}, antiFrame)
+
+    local antiButtons = {"Anti Punch","Anti Shoot","Anti Tase","Anti Arrest","Anti Bring","Anti Fling","Anti Void"}
+    for _, name in ipairs(antiButtons) do
+        makeButton(name, antiFrame, function()
+            print("WIP!")
+            setError(name.." WIP!")
+        end)
+    end
+
     updateCanvas()
 end
 
