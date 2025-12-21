@@ -9,7 +9,12 @@ local TeamsService = game:GetService("Teams")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local workspaceRemote = workspace:WaitForChild("Remote")
+local workspaceRemote = workspace:FindFirstChild("Remote")
+
+if not workspaceRemote then
+    warn("workspace.Remote not found (expected in some games)")
+end
+
 
 -- helper to create instances
 local function new(class, props, parent)
